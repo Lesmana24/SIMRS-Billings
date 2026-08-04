@@ -50,9 +50,9 @@ func PayBilling(c *gin.Context){
 	billingID, _ := strconv.ParseUint(c.Param("id"), 10,32)
 	idempotencyKey := c.GetHeader("X-Idempotency-Key")
 
-	if idempotencyKey == ""{
+	if idempotencyKey == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Header X-Idempotency-Key",
+			"error": "Header X-Idempotency-Key wajib diisi",
 		})
 		return
 	}
