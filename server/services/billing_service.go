@@ -12,12 +12,21 @@ import (
 
 type CreateBillingRequest struct {
 	PatientUserID uint            `json:"patient_user_id" binding:"required"`
-	PatientName   string          `json:"patient_name" binding:"required"`
+	PatientName   string          `json:"patient_name"`
 	BPJSClaim     decimal.Decimal `json:"bpjs_claim"`
 	ActionIDs     []uint          `json:"action_ids" binding:"required"`
 }
 
 func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
+	var patient models.User
+	if err := config.DB.First(&patient, req.PatientUserID).Error; err != nil {
+		return nil, fmt.Errorf("Pasien dengan ID %d tidak ditemukan", req.PatientUserID)
+	}
+
+	if req.PatientName == "" {
+		req.PatientName = patient.Username
+	}
+
 	var tarifs []models.Tarif
 	if err := config.DB.Where("id IN ?", req.ActionIDs).Find(&tarifs).Error; err != nil {
 		return nil, fmt.Errorf("Gagal mengambil Tarif: %w", err)
