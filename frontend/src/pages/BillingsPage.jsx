@@ -20,7 +20,8 @@ import {
   Check,
   X,
   Image as ImageIcon,
-  ExternalLink
+  ExternalLink,
+  Minus
 } from 'lucide-react';
 
 export const BillingsPage = () => {
@@ -43,10 +44,10 @@ export const BillingsPage = () => {
   const [pasiensList, setPasiensList] = useState([]);
   const [tarifsList, setTarifsList] = useState([]);
 
-  // Create Form State
+  // Create Form State: selectedActions is { [actionId]: quantity }
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [bpjsClaim, setBpjsClaim] = useState(0);
-  const [selectedActionIds, setSelectedActionIds] = useState([]);
+  const [selectedActions, setSelectedActions] = useState({});
   const [modalTarifSearch, setModalTarifSearch] = useState('');
 
   // Payment Idempotency & Verification State
@@ -82,7 +83,7 @@ export const BillingsPage = () => {
     setIsCreateOpen(true);
     setSelectedPatientId('');
     setBpjsClaim(0);
-    setSelectedActionIds([]);
+    setSelectedActions({});
     setModalTarifSearch('');
 
     try {
@@ -98,9 +99,23 @@ export const BillingsPage = () => {
   };
 
   const handleActionToggle = (id) => {
-    setSelectedActionIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setSelectedActions((prev) => {
+      const copy = { ...prev };
+      if (copy[id]) {
+        delete copy[id];
+      } else {
+        copy[id] = 1;
+      }
+      return copy;
+    });
+  };
+
+  const handleQuantityChange = (id, qty) => {
+    const val = Math.max(1, Math.min(99, Number(qty) || 1));
+    setSelectedActions((prev) => ({
+      ...prev,
+      [id]: val,
+    }));
   };
 
   const handleCreateSubmit = async (e) => {
@@ -109,7 +124,13 @@ export const BillingsPage = () => {
       setToast({ message: 'Pilih pasien terlebih dahulu', type: 'error' });
       return;
     }
-    if (selectedActionIds.length === 0) {
+
+    const items = Object.entries(selectedActions).map(([actionId, qty]) => ({
+      action_id: Number(actionId),
+      quantity: Number(qty) || 1,
+    }));
+
+    if (items.length === 0) {
       setToast({ message: 'Pilih minimal satu tindakan medis/tarif', type: 'error' });
       return;
     }
@@ -118,7 +139,8 @@ export const BillingsPage = () => {
       await billingApi.create({
         patient_user_id: Number(selectedPatientId),
         bpjs_claim: Number(bpjsClaim) || 0,
-        action_ids: selectedActionIds.map(Number),
+        items: items,
+        action_ids: items.map(i => i.action_id),
       });
 
       setToast({ message: 'Tagihan medis pasien berhasil dibuat', type: 'success' });
@@ -215,10 +237,13 @@ export const BillingsPage = () => {
     }).format(num);
   };
 
-  const selectedTarifsSum = selectedActionIds.reduce((sum, id) => {
-    const found = tarifsList.find((t) => (t.ID || t.id) === id);
-    return sum + (found ? Number(found.amount) : 0);
+  const selectedActionsCount = Object.keys(selectedActions).length;
+
+  const selectedTarifsSum = Object.entries(selectedActions).reduce((sum, [id, qty]) => {
+    const found = tarifsList.find((t) => String(t.ID || t.id) === String(id));
+    return sum + (found ? Number(found.amount) * Number(qty) : 0);
   }, 0);
+
   const netPatientAmountPreview = Math.max(0, selectedTarifsSum - Number(bpjsClaim || 0));
 
   const filteredModalTarifs = tarifsList.filter((t) =>
@@ -396,11 +421,11 @@ export const BillingsPage = () => {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-semibold uppercase text-gray-300">
-                Pilih Rincian Tindakan Layanan Medis
+                Pilih Rincian & Kuantitas Layanan Medis
               </label>
-              {selectedActionIds.length > 0 && (
+              {selectedActionsCount > 0 && (
                 <span className="text-[11px] font-semibold text-indigo-400 font-mono">
-                  {selectedActionIds.length} tindakan dipilih
+                  {selectedActionsCount} item dipilih
                 </span>
               )}
             </div>
@@ -417,7 +442,7 @@ export const BillingsPage = () => {
               />
             </div>
 
-            <div className="max-h-48 overflow-y-auto space-y-2 p-2 rounded-xl bg-white/5 border border-white/10">
+            <div className="max-h-56 overflow-y-auto space-y-2 p-2 rounded-xl bg-white/5 border border-white/10">
               {filteredModalTarifs.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">
                   {tarifsList.length === 0 ? 'Belum ada master tarif layanan.' : 'Tidak ada tindakan medis yang cocok.'}
@@ -425,25 +450,68 @@ export const BillingsPage = () => {
               ) : (
                 filteredModalTarifs.map((t) => {
                   const tId = t.ID || t.id;
-                  const isChecked = selectedActionIds.includes(tId);
+                  const isChecked = Boolean(selectedActions[tId]);
+                  const currentQty = selectedActions[tId] || 1;
+                  const subTotalItem = Number(t.amount || 0) * currentQty;
+
                   return (
-                    <label
+                    <div
                       key={tId}
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      className={`p-2.5 rounded-lg border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
                         isChecked ? 'bg-indigo-600/20 border-indigo-500/50' : 'bg-transparent border-white/5 hover:bg-white/5'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleActionToggle(tId)}
-                          className="rounded border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                          className="rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 shrink-0"
                         />
-                        <span className="text-xs font-semibold text-white">{t.action_name}</span>
-                      </div>
-                      <span className="text-xs font-mono font-bold text-emerald-400">{formatIDR(t.amount)}</span>
-                    </label>
+                        <div className="overflow-hidden">
+                          <span className="text-xs font-semibold text-white block truncate">{t.action_name}</span>
+                          <span className="text-[11px] font-mono text-gray-400">
+                            {formatIDR(t.amount)} / Satuan
+                          </span>
+                        </div>
+                      </label>
+
+                      {/* Interactive Quantity Spinner (Only when checked) */}
+                      {isChecked && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center border border-indigo-500/40 rounded-lg overflow-hidden bg-black/40">
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityChange(tId, currentQty - 1)}
+                              className="p-1 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                              title="Kurangi Kuantitas"
+                            >
+                              <Minus size={13} />
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max="99"
+                              value={currentQty}
+                              onChange={(e) => handleQuantityChange(tId, e.target.value)}
+                              className="w-10 text-center bg-transparent text-xs font-mono font-bold text-white focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityChange(tId, currentQty + 1)}
+                              className="p-1 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                              title="Tambah Kuantitas / Hari"
+                            >
+                              <Plus size={13} />
+                            </button>
+                          </div>
+
+                          <span className="text-xs font-mono font-bold text-emerald-400 min-w-[80px] text-right">
+                            {formatIDR(subTotalItem)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   );
                 })
               )}

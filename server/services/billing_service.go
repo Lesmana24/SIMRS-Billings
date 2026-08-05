@@ -11,11 +11,17 @@ import (
 	"gorm.io/gorm"
 )
 
+type ActionItemInput struct {
+	ActionID uint `json:"action_id"`
+	Quantity int  `json:"quantity"`
+}
+
 type CreateBillingRequest struct {
-	PatientUserID uint            `json:"patient_user_id" binding:"required"`
-	PatientName   string          `json:"patient_name"`
-	BPJSClaim     decimal.Decimal `json:"bpjs_claim"`
-	ActionIDs     []uint          `json:"action_ids" binding:"required"`
+	PatientUserID uint              `json:"patient_user_id" binding:"required"`
+	PatientName   string            `json:"patient_name"`
+	BPJSClaim     decimal.Decimal   `json:"bpjs_claim"`
+	ActionIDs     []uint            `json:"action_ids"`
+	Items         []ActionItemInput `json:"items"`
 }
 
 type UpdateBillingRequest struct {
@@ -34,8 +40,34 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 		req.PatientName = patient.Username
 	}
 
+	// Build map of actionID -> quantity
+	actionQtyMap := make(map[uint]int)
+
+	if len(req.Items) > 0 {
+		for _, item := range req.Items {
+			qty := item.Quantity
+			if qty <= 0 {
+				qty = 1
+			}
+			actionQtyMap[item.ActionID] = qty
+		}
+	} else if len(req.ActionIDs) > 0 {
+		for _, id := range req.ActionIDs {
+			actionQtyMap[id] = 1
+		}
+	}
+
+	if len(actionQtyMap) == 0 {
+		return nil, errors.New("Pilih minimal satu tindakan medis/tarif")
+	}
+
+	var actionIDs []uint
+	for id := range actionQtyMap {
+		actionIDs = append(actionIDs, id)
+	}
+
 	var tarifs []models.Tarif
-	if err := config.DB.Where("id IN ?", req.ActionIDs).Find(&tarifs).Error; err != nil {
+	if err := config.DB.Where("id IN ?", actionIDs).Find(&tarifs).Error; err != nil {
 		return nil, fmt.Errorf("Gagal mengambil Tarif: %w", err)
 	}
 
@@ -47,7 +79,10 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 	var items []models.BillingItem
 
 	for _, t := range tarifs {
-		qty := 1
+		qty := actionQtyMap[t.ID]
+		if qty <= 0 {
+			qty = 1
+		}
 		subTotal := t.Amount.Mul(decimal.NewFromInt(int64(qty)))
 		totalAmount = totalAmount.Add(subTotal)
 
