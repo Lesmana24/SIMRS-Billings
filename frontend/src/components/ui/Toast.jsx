@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 export const Toast = ({ message, type = 'success', onClose }) => {
@@ -6,8 +7,8 @@ export const Toast = ({ message, type = 'success', onClose }) => {
 
   const isSuccess = type === 'success';
 
-  return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-md animate-fade-in ${
+  return createPortal(
+    <div className={`fixed bottom-6 right-6 z-[10000] flex items-center gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-md animate-fade-in ${
       isSuccess
         ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/40'
         : 'bg-rose-950/90 text-rose-200 border-rose-500/40'
@@ -19,6 +20,7 @@ export const Toast = ({ message, type = 'success', onClose }) => {
           <X size={16} />
         </button>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
