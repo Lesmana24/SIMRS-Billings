@@ -107,6 +107,9 @@ export const Dashboard = ({ onNavigate }) => {
           <p className="text-xs text-gray-400">Kelola tarif layanan rumah sakit atau periksa rincian mutasi kas masuk.</p>
         </div>
         <div className="md:col-span-2 flex flex-wrap items-center gap-3 justify-start md:justify-end">
+          <button onClick={() => onNavigate('analytics')} className="btn btn-secondary btn-sm">
+            Analytics Keuangan <ArrowUpRight size={14} className="text-indigo-400" />
+          </button>
           <button onClick={() => onNavigate('tarifs')} className="btn btn-secondary btn-sm">
             Master Tarif Layanan <ArrowUpRight size={14} />
           </button>

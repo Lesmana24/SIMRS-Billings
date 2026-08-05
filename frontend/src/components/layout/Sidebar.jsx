@@ -9,6 +9,7 @@ import {
   UserCheck, 
   ShieldAlert,
   ChevronRight,
+  BarChart3,
   X
 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   const navItems = isStaff ? [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'analytics', label: 'Laporan & Analytics', icon: BarChart3 },
     { id: 'billings', label: 'Medical Billings', icon: Receipt },
     { id: 'tarifs', label: 'Master Tarif Layanan', icon: Tag },
     { id: 'ledgers', label: 'Payment Ledgers (Jurnal Kas)', icon: BookOpen },

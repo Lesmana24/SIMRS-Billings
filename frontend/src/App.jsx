@@ -10,6 +10,7 @@ import { BillingsPage } from './pages/BillingsPage';
 import { LedgersPage } from './pages/LedgersPage';
 import { UsersPage } from './pages/UsersPage';
 import { MyBillingsPage } from './pages/MyBillingsPage';
+import { AnalyticsDashboard } from './pages/AnalyticsDashboard';
 import './App.css';
 
 const MainLayout = () => {
@@ -39,6 +40,8 @@ const MainLayout = () => {
     switch (activeTab) {
       case 'dashboard':
         return isStaff ? <Dashboard onNavigate={(tab) => setActiveTab(tab)} /> : <MyBillingsPage />;
+      case 'analytics':
+        return isStaff ? <AnalyticsDashboard /> : <MyBillingsPage />;
       case 'billings':
         return isStaff ? <BillingsPage /> : <MyBillingsPage />;
       case 'tarifs':

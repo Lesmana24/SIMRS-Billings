@@ -67,6 +67,10 @@ func SetupRouter() *gin.Engine {
 				// Payment Ledgers
 				staffOnly.GET("/ledgers", handlers.GetPaymentLedgers)
 				staffOnly.GET("/ledgers/:id", handlers.GetPaymentLedgerByID)
+
+				// Analytics & Financial Reporting
+				staffOnly.GET("/analytics/summary", handlers.GetAnalyticsSummary)
+				staffOnly.GET("/analytics/export", handlers.ExportLedgersReport)
 			}
 
 			// Pasien Routes

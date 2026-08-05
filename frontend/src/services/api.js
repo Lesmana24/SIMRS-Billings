@@ -160,3 +160,33 @@ export const pasienApi = {
   },
   getMyBillingById: (id) => request(`/pasien/my-billings/${id}`),
 };
+
+// ----------------------------------------------------
+// Analytics & Financial Reporting API
+// ----------------------------------------------------
+export const analyticsApi = {
+  getSummary: () => request('/analytics/summary'),
+  downloadCsv: async () => {
+    const token = localStorage.getItem('simrs_token');
+    const response = await fetch('/api/v1/analytics/export', {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Gagal mengunduh laporan keuangan');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Laporan_Penerimaan_Kas_SIMRS_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+};
+
