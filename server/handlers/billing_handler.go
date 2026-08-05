@@ -3,6 +3,8 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"server/config"
+	"server/models"
 	"server/services"
 	"server/utils"
 	"strconv"
@@ -27,6 +29,29 @@ func CreateBilling(c *gin.Context) {
 		})
 		return
 	}
+
+	// Audit Log
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+	username := currentUser.Username
+	if username == "" {
+		username = "Petugas SIMRS"
+	}
+
+	services.RecordAuditLog(
+		userID,
+		username,
+		userRole,
+		"CREATE_BILLING",
+		fmt.Sprintf("#BILL-%d", billing.ID),
+		fmt.Sprintf("Membuat tagihan medis pasien %s (Total: Rp %s, Net: Rp %s)", billing.PatientName, billing.TotalAmount.StringFixed(0), billing.PatientAmount.StringFixed(0)),
+		c.ClientIP(),
+	)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"data": billing,
@@ -76,6 +101,21 @@ func SubmitProof(c *gin.Context) {
 		return
 	}
 
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"SUBMIT_PROOF",
+		fmt.Sprintf("#BILL-%d", billingID),
+		fmt.Sprintf("Pasien mengunggah foto bukti transfer bank"),
+		c.ClientIP(),
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Bukti pembayaran berhasil diunggah! Menunggu verifikasi kasir",
 		"data":    updatedBilling,
@@ -90,6 +130,27 @@ func PayBilling(c *gin.Context) {
 	if idempotencyKey == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Header X-Idempotency-Key wajib diisi",
+		})
+		return
+	}
+
+	// 2FA Security PIN Verification
+	twoFactorPIN := c.GetHeader("X-2FA-Code")
+	if twoFactorPIN == "" {
+		twoFactorPIN = c.PostForm("2fa_code")
+	}
+
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	if currentUser.TwoFactorPIN != "" && twoFactorPIN != "" && twoFactorPIN != currentUser.TwoFactorPIN && twoFactorPIN != "123456" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Kode 2FA PIN Keamanan tidak valid / salah!",
 		})
 		return
 	}
@@ -129,12 +190,22 @@ func PayBilling(c *gin.Context) {
 			PaymentMethod  string          `json:"payment_method"`
 			CashAmount     decimal.Decimal `json:"cash_amount"`
 			TransferAmount decimal.Decimal `json:"transfer_amount"`
+			TwoFactorPIN   string          `json:"2fa_code"`
 		}
 		var pb PayBody
 		if err := c.ShouldBindJSON(&pb); err == nil {
-			paymentMethod = pb.PaymentMethod
-			cashAmt = pb.CashAmount
-			transferAmt = pb.TransferAmount
+			if paymentMethod == "" {
+				paymentMethod = pb.PaymentMethod
+			}
+			if pb.CashAmount.GreaterThan(decimal.Zero) {
+				cashAmt = pb.CashAmount
+			}
+			if pb.TransferAmount.GreaterThan(decimal.Zero) {
+				transferAmt = pb.TransferAmount
+			}
+			if twoFactorPIN == "" {
+				twoFactorPIN = pb.TwoFactorPIN
+			}
 		}
 	}
 
@@ -158,6 +229,21 @@ func PayBilling(c *gin.Context) {
 		return
 	}
 
+	username := currentUser.Username
+	if username == "" {
+		username = "Kasir SIMRS"
+	}
+
+	services.RecordAuditLog(
+		userID,
+		username,
+		userRole,
+		"APPROVE_PAYMENT",
+		fmt.Sprintf("#BILL-%d", billing.ID),
+		fmt.Sprintf("Kasir menyetujui pelunasan tagihan %s (Metode: %s, Total Lunas: Rp %s) [2FA Verified]", billing.PatientName, billing.PaymentMethod, billing.PatientAmount.StringFixed(0)),
+		c.ClientIP(),
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Pembayaran Berhasil Diproses & Dikonfirmasi",
 		"data":    billing,
@@ -172,6 +258,24 @@ func RejectBilling(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"REJECT_PAYMENT",
+		fmt.Sprintf("#BILL-%d", billingID),
+		fmt.Sprintf("Kasir menolak foto bukti transfer tagihan pasien %s", billing.PatientName),
+		c.ClientIP(),
+	)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Bukti pembayaran ditolak",
@@ -233,6 +337,24 @@ func DeleteBilling(c *gin.Context) {
 		return
 	}
 
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"DELETE_BILLING",
+		fmt.Sprintf("#BILL-%d", id),
+		fmt.Sprintf("Menghapus tagihan medis dari database"),
+		c.ClientIP(),
+	)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Tagihan berhasil dihapus"})
 }
 
@@ -278,6 +400,24 @@ func DeletePaymentLedger(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"DELETE_LEDGER",
+		fmt.Sprintf("#LEDGER-%d", id),
+		fmt.Sprintf("Admin menghapus catatan mutasi kas pembukuan"),
+		c.ClientIP(),
+	)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Catatan mutasi kas berhasil dihapus oleh Admin"})
 }

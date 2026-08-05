@@ -1,13 +1,53 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"server/config"
+	"server/models"
 	"server/services"
 	"server/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+func CreateUser(c *gin.Context) {
+	var req services.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := services.CreateUser(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"CREATE_USER",
+		fmt.Sprintf("User #%d", user.ID),
+		fmt.Sprintf("Admin membuat akun baru '%s' dengan role '%s'", user.Username, user.Role),
+		c.ClientIP(),
+	)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Pengguna baru berhasil dibuat oleh Admin",
+		"data":    user,
+	})
+}
 
 func GetUsers(c *gin.Context) {
 	page, limit, search := utils.GetPaginationParams(c)
@@ -47,6 +87,25 @@ func UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"UPDATE_USER",
+		fmt.Sprintf("User #%d", user.ID),
+		fmt.Sprintf("Admin memperbarui data akun '%s' (Role: %s)", user.Username, user.Role),
+		c.ClientIP(),
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User berhasil diperbarui",
 		"data":    user,
@@ -55,9 +114,35 @@ func UpdateUser(c *gin.Context) {
 
 func DeleteUser(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 32)
+	existing, _ := services.GetUserByID(uint(id))
+
 	if err := services.DeleteUser(uint(id)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	userRole := c.GetString("role")
+	var currentUser models.User
+	if userID > 0 {
+		config.DB.First(&currentUser, userID)
+	}
+
+	targetUsername := "User"
+	if existing != nil {
+		targetUsername = existing.Username
+	}
+
+	services.RecordAuditLog(
+		userID,
+		currentUser.Username,
+		userRole,
+		"DELETE_USER",
+		fmt.Sprintf("User #%d", id),
+		fmt.Sprintf("Admin menghapus akun '%s'", targetUsername),
+		c.ClientIP(),
+	)
+
 	c.JSON(http.StatusOK, gin.H{"message": "User berhasil dihapus"})
 }

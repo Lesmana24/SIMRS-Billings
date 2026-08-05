@@ -37,6 +37,7 @@ func ConnectDB() {
 		&models.BillingItem{},
 		&models.IdempotencyLog{},
 		&models.PaymentLedger{},
+		&models.AuditLog{},
 	)
 	DB = database
 	fmt.Println("Connected to Database")

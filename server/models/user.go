@@ -8,8 +8,9 @@ import (
 
 type User struct {
 	gorm.Model
-	Username	string		`gorm:"not null" json:"username"`
-	Password	string		`gorm:"not null" json:"-"`
-	Role		string		`gorm:"not null;default:'pasien'" json:"role"`
-	CreatedAt	time.Time	`json:"created_at"`
+	Username     string    `gorm:"not null" json:"username"`
+	Password     string    `gorm:"not null" json:"-"`
+	Role         string    `gorm:"not null;default:'pasien'" json:"role"`
+	TwoFactorPIN string    `gorm:"type:varchar(6);default:'123456'" json:"-"`
+	CreatedAt    time.Time `json:"created_at"`
 }

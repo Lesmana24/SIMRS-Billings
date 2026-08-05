@@ -27,6 +27,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     { id: 'billings', label: 'Medical Billings', icon: Receipt },
     { id: 'tarifs', label: 'Master Tarif Layanan', icon: Tag },
     { id: 'ledgers', label: 'Payment Ledgers (Jurnal Kas)', icon: BookOpen },
+    { id: 'audit-logs', label: 'Audit Trail System', icon: ShieldAlert },
     ...(isAdmin ? [{ id: 'users', label: 'Manajemen Pengguna', icon: Users }] : []),
   ] : [
     { id: 'my-billings', label: 'Tagihan Layanan Saya', icon: Receipt },

@@ -5,6 +5,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
 import { Toast } from '../components/ui/Toast';
 import { ReceiptModal } from '../components/ui/ReceiptModal';
+import { TwoFactorModal } from '../components/ui/TwoFactorModal';
 import { 
   Receipt, 
   Plus, 
@@ -42,6 +43,8 @@ export const BillingsPage = () => {
   const [verifyBilling, setVerifyBilling] = useState(null);
   const [receiptBilling, setReceiptBilling] = useState(null);
   const [deleteBilling, setDeleteBilling] = useState(null);
+  const [is2FAOpen, setIs2FAOpen] = useState(false);
+  const [pendingActionType, setPendingActionType] = useState(null); // 'DIRECT' or 'VERIFY'
 
   // Data helpers for creation
   const [pasiensList, setPasiensList] = useState([]);
@@ -210,10 +213,11 @@ export const BillingsPage = () => {
     }
   };
 
-  const handleApproveVerification = async () => {
-    if (!verifyBilling) return;
-    const netAmt = Number(verifyBilling.patient_amount || 0);
+  const trigger2FAPayment = (actionType) => {
+    const targetBilling = actionType === 'VERIFY' ? verifyBilling : payBilling;
+    if (!targetBilling) return;
 
+    const netAmt = Number(targetBilling.patient_amount || 0);
     if (payMethod === 'SPLIT') {
       const sum = Number(splitCashAmt || 0) + Number(splitTransferAmt || 0);
       if (sum !== netAmt) {
@@ -225,24 +229,51 @@ export const BillingsPage = () => {
       }
     }
 
+    setPendingActionType(actionType);
+    setIs2FAOpen(true);
+  };
+
+  const executeConfirmedPayment = async (twoFactorPIN) => {
     setIsProcessing(true);
+    setIs2FAOpen(false);
 
     try {
-      const res = await billingApi.pay(verifyBilling.ID || verifyBilling.id, idempotencyKey, {
-        payment_method: payMethod,
-        cash_amount: payMethod === 'SPLIT' ? Number(splitCashAmt) : (payMethod === 'CASH' ? netAmt : 0),
-        transfer_amount: payMethod === 'SPLIT' ? Number(splitTransferAmt) : (payMethod === 'CASH' ? 0 : netAmt),
-      });
+      if (pendingActionType === 'VERIFY') {
+        if (!verifyBilling) return;
+        const netAmt = Number(verifyBilling.patient_amount || 0);
+        const res = await billingApi.pay(verifyBilling.ID || verifyBilling.id, idempotencyKey, {
+          payment_method: payMethod,
+          cash_amount: payMethod === 'SPLIT' ? Number(splitCashAmt) : (payMethod === 'CASH' ? netAmt : 0),
+          transfer_amount: payMethod === 'SPLIT' ? Number(splitTransferAmt) : (payMethod === 'CASH' ? 0 : netAmt),
+          two_factor_pin: twoFactorPIN,
+        });
 
-      setToast({ message: res.message || 'Pembayaran berhasil disetujui & dilunaskan!', type: 'success' });
-      const updatedData = res.data || verifyBilling;
-      setVerifyBilling(null);
-      setReceiptBilling(updatedData);
-      fetchBillings();
+        setToast({ message: res.message || 'Pembayaran berhasil disetujui & dilunaskan!', type: 'success' });
+        const updatedData = res.data || verifyBilling;
+        setVerifyBilling(null);
+        setReceiptBilling(updatedData);
+        fetchBillings();
+      } else if (pendingActionType === 'DIRECT') {
+        if (!payBilling) return;
+        const netAmt = Number(payBilling.patient_amount || 0);
+        const res = await billingApi.pay(payBilling.ID || payBilling.id, idempotencyKey, {
+          payment_method: payMethod,
+          cash_amount: payMethod === 'SPLIT' ? Number(splitCashAmt) : (payMethod === 'CASH' ? netAmt : 0),
+          transfer_amount: payMethod === 'SPLIT' ? Number(splitTransferAmt) : (payMethod === 'CASH' ? 0 : netAmt),
+          two_factor_pin: twoFactorPIN,
+        });
+
+        setToast({ message: res.message || 'Pembayaran kasir berhasil diproses!', type: 'success' });
+        const updatedData = res.data || payBilling;
+        setPayBilling(null);
+        setReceiptBilling(updatedData);
+        fetchBillings();
+      }
     } catch (err) {
-      setToast({ message: err.message || 'Gagal menyetujui pembayaran', type: 'error' });
+      setToast({ message: err.message || 'Gagal memproses pembayaran 2FA', type: 'error' });
     } finally {
       setIsProcessing(false);
+      setPendingActionType(null);
     }
   };
 
@@ -257,42 +288,6 @@ export const BillingsPage = () => {
       fetchBillings();
     } catch (err) {
       setToast({ message: err.message || 'Gagal menolak bukti pembayaran', type: 'error' });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleProcessDirectPayment = async () => {
-    if (!payBilling) return;
-    const netAmt = Number(payBilling.patient_amount || 0);
-
-    if (payMethod === 'SPLIT') {
-      const sum = Number(splitCashAmt || 0) + Number(splitTransferAmt || 0);
-      if (sum !== netAmt) {
-        setToast({ 
-          message: `Total pembayaran split (Rp ${sum.toLocaleString('id-ID')}) harus SAMA PERSIS dengan total tagihan bersih (Rp ${netAmt.toLocaleString('id-ID')})`, 
-          type: 'error' 
-        });
-        return;
-      }
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const res = await billingApi.pay(payBilling.ID || payBilling.id, idempotencyKey, {
-        payment_method: payMethod,
-        cash_amount: payMethod === 'SPLIT' ? Number(splitCashAmt) : (payMethod === 'CASH' ? netAmt : 0),
-        transfer_amount: payMethod === 'SPLIT' ? Number(splitTransferAmt) : (payMethod === 'CASH' ? 0 : netAmt),
-      });
-
-      setToast({ message: res.message || 'Pembayaran kasir berhasil diproses!', type: 'success' });
-      const updatedData = res.data || payBilling;
-      setPayBilling(null);
-      setReceiptBilling(updatedData);
-      fetchBillings();
-    } catch (err) {
-      setToast({ message: err.message || 'Gagal memproses pembayaran', type: 'error' });
     } finally {
       setIsProcessing(false);
     }
@@ -334,7 +329,8 @@ export const BillingsPage = () => {
     (t.action_name || '').toLowerCase().includes(modalTarifSearch.toLowerCase())
   );
 
-  const currentPayNetAmt = payBilling ? Number(payBilling.patient_amount || 0) : 0;
+  const activeTargetBilling = pendingActionType === 'VERIFY' ? verifyBilling : payBilling;
+  const currentPayNetAmt = activeTargetBilling ? Number(activeTargetBilling.patient_amount || 0) : (payBilling ? Number(payBilling.patient_amount || 0) : 0);
   const currentSplitSum = Number(splitCashAmt || 0) + Number(splitTransferAmt || 0);
   const isSplitValid = payMethod !== 'SPLIT' || currentSplitSum === currentPayNetAmt;
 
@@ -753,7 +749,7 @@ export const BillingsPage = () => {
               </button>
               <button
                 type="button"
-                onClick={handleApproveVerification}
+                onClick={() => trigger2FAPayment('VERIFY')}
                 disabled={isProcessing}
                 className="btn btn-emerald btn-sm flex items-center gap-1"
               >
@@ -903,7 +899,7 @@ export const BillingsPage = () => {
             </button>
             <button
               type="button"
-              onClick={handleProcessDirectPayment}
+              onClick={() => trigger2FAPayment('DIRECT')}
               disabled={isProcessing || !isSplitValid}
               className={`btn btn-emerald btn-sm ${!isSplitValid ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
@@ -912,6 +908,14 @@ export const BillingsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Modal 2FA Security PIN */}
+      <TwoFactorModal
+        isOpen={is2FAOpen}
+        onClose={() => { setIs2FAOpen(false); setPendingActionType(null); }}
+        onConfirm={executeConfirmedPayment}
+        isProcessing={isProcessing}
+      />
 
       {/* Modal Delete Billing */}
       <Modal isOpen={!!deleteBilling} onClose={() => setDeleteBilling(null)} title="Konfirmasi Hapus Tagihan">

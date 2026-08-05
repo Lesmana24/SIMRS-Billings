@@ -7,10 +7,47 @@ import (
 	"server/utils"
 )
 
+type CreateUserRequest struct {
+	Username     string `json:"username" binding:"required"`
+	Password     string `json:"password" binding:"required"`
+	Role         string `json:"role" binding:"required"`
+	TwoFactorPIN string `json:"2fa_pin"`
+}
+
 type UpdateUserRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
+}
+
+func CreateUser(req *CreateUserRequest) (*models.User, error) {
+	var existing models.User
+	if err := config.DB.Where("username = ?", req.Username).First(&existing).Error; err == nil {
+		return nil, errors.New("Username sudah terdaftar pada sistem")
+	}
+
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		return nil, errors.New("Gagal meng-hash password pengguna")
+	}
+
+	pin := req.TwoFactorPIN
+	if pin == "" {
+		pin = "123456"
+	}
+
+	user := models.User{
+		Username:     req.Username,
+		Password:     hashedPassword,
+		Role:         req.Role,
+		TwoFactorPIN: pin,
+	}
+
+	if err := config.DB.Create(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func GetUsers(search, roleFilter string, page, limit int) ([]models.User, utils.Pagination, error) {

@@ -4,7 +4,7 @@ import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
 import { Toast } from '../components/ui/Toast';
-import { Users, Search, Edit3, Trash2, Filter } from 'lucide-react';
+import { Users, Search, Edit3, Trash2, Filter, Plus, UserPlus, ShieldCheck, Lock } from 'lucide-react';
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -16,10 +16,17 @@ export const UsersPage = () => {
   const [roleFilter, setRoleFilter] = useState('');
 
   // Modals
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [deleteUser, setDeleteUser] = useState(null);
 
-  // Edit form states
+  // Form states for Create
+  const [createUsername, setCreateUsername] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createRole, setCreateRole] = useState('staff');
+  const [create2FA, setCreate2FA] = useState('123456');
+
+  // Form states for Edit
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('pasien');
   const [password, setPassword] = useState('');
@@ -48,6 +55,37 @@ export const UsersPage = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const openCreateModal = () => {
+    setCreateUsername('');
+    setCreatePassword('');
+    setCreateRole('staff');
+    setCreate2FA('123456');
+    setIsCreateOpen(true);
+  };
+
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!createUsername || !createPassword) {
+      setToast({ message: 'Username dan Password wajib diisi', type: 'error' });
+      return;
+    }
+
+    try {
+      await userApi.create({
+        username: createUsername,
+        password: createPassword,
+        role: createRole,
+        '2fa_pin': create2FA || '123456',
+      });
+
+      setToast({ message: `Akun ${createRole.toUpperCase()} '${createUsername}' berhasil dibuat!`, type: 'success' });
+      setIsCreateOpen(false);
+      fetchUsers();
+    } catch (err) {
+      setToast({ message: err.message || 'Gagal menambahkan pengguna baru', type: 'error' });
+    }
+  };
 
   const openEditModal = (u) => {
     setEditUser(u);
@@ -94,8 +132,11 @@ export const UsersPage = () => {
           <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
             <Users className="text-indigo-400" size={22} /> Manajemen Pengguna & Hak Akses
           </h2>
-          <p className="text-xs text-gray-400">Pengelolaan akun admin, staff kasir, dan pasien terdaftar SIMRS.</p>
+          <p className="text-xs text-gray-400">Pengelolaan akun administrator, staff kasir, dan pasien terdaftar SIMRS.</p>
         </div>
+        <button onClick={openCreateModal} className="btn btn-primary btn-sm flex items-center gap-1.5">
+          <UserPlus size={16} /> Buat Akun Pengguna Baru
+        </button>
       </div>
 
       {/* Controls */}
@@ -190,6 +231,72 @@ export const UsersPage = () => {
           onPageChange={(p) => setPage(p)}
         />
       </div>
+
+      {/* Modal Create User */}
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Buat Akun Pengguna SIMRS Baru" maxWidth="max-w-md">
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Username Pengguna</label>
+            <input
+              type="text"
+              value={createUsername}
+              onChange={(e) => setCreateUsername(e.target.value)}
+              placeholder="misal: kasir_keuangan, dr_subagyo, pasien_budiman..."
+              className="glass-input text-xs"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Password</label>
+            <input
+              type="password"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
+              placeholder="Masukkan password aman..."
+              className="glass-input text-xs"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Peran Hak Akses (Role)</label>
+            <select
+              value={createRole}
+              onChange={(e) => setCreateRole(e.target.value)}
+              className="glass-input text-xs"
+            >
+              <option value="staff">Staff Kasir / Medis</option>
+              <option value="admin">Administrator SIMRS</option>
+              <option value="pasien">Pasien Terdaftar</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1 flex items-center gap-1">
+              <ShieldCheck size={14} className="text-cyan-400" /> Security PIN 2FA (6 Digit)
+            </label>
+            <input
+              type="text"
+              maxLength={6}
+              value={create2FA}
+              onChange={(e) => setCreate2FA(e.target.value.replace(/\D/g, ''))}
+              placeholder="123456"
+              className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">Default PIN 2FA: <code className="text-cyan-300">123456</code></p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+            <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm">
+              Batal
+            </button>
+            <button type="submit" className="btn btn-primary btn-sm flex items-center gap-1">
+              <UserPlus size={14} /> Buat Akun Pengguna
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Edit User */}
       <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title="Edit Data Pengguna">

@@ -93,15 +93,21 @@ export const billingApi = {
     const key = idempotencyKey || `PAY-BILLING-${id}-${Date.now()}`;
     const token = localStorage.getItem('simrs_token');
 
-    let proofFile, payment_method, cash_amount, transfer_amount;
+    let proofFile, payment_method, cash_amount, transfer_amount, two_factor_pin;
     if (typeof options === 'object' && options !== null && !(options instanceof File)) {
       proofFile = options.proofFile;
       payment_method = options.payment_method;
       cash_amount = options.cash_amount;
       transfer_amount = options.transfer_amount;
+      two_factor_pin = options.two_factor_pin;
     } else if (options instanceof File) {
       proofFile = options;
     }
+
+    const headers = {
+      'X-Idempotency-Key': key,
+      ...(two_factor_pin ? { 'X-2FA-Code': two_factor_pin } : {}),
+    };
 
     if (proofFile) {
       const formData = new FormData();
@@ -109,12 +115,13 @@ export const billingApi = {
       if (payment_method) formData.append('payment_method', payment_method);
       if (cash_amount) formData.append('cash_amount', cash_amount);
       if (transfer_amount) formData.append('transfer_amount', transfer_amount);
+      if (two_factor_pin) formData.append('2fa_code', two_factor_pin);
 
       return fetch(`${API_BASE_URL}/billings/${id}/pay`, {
         method: 'POST',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'X-Idempotency-Key': key,
+          ...headers,
         },
         body: formData,
       }).then(async (res) => {
@@ -128,13 +135,12 @@ export const billingApi = {
 
     return request(`/billings/${id}/pay`, {
       method: 'POST',
-      headers: {
-        'X-Idempotency-Key': key,
-      },
+      headers,
       body: {
         payment_method: payment_method || 'CASH',
         cash_amount: Number(cash_amount) || 0,
         transfer_amount: Number(transfer_amount) || 0,
+        '2fa_code': two_factor_pin || '123456',
       },
     });
   },
@@ -152,6 +158,7 @@ export const userApi = {
     return request(`/users${query ? `?${query}` : ''}`);
   },
   getById: (id) => request(`/users/${id}`),
+  create: (payload) => request('/users', { method: 'POST', body: payload }),
   update: (id, payload) => request(`/users/${id}`, { method: 'PUT', body: payload }),
   delete: (id) => request(`/users/${id}`, { method: 'DELETE' }),
 };
@@ -166,6 +173,16 @@ export const ledgerApi = {
   },
   getById: (id) => request(`/ledgers/${id}`),
   delete: (id) => request(`/ledgers/${id}`, { method: 'DELETE' }),
+};
+
+// ----------------------------------------------------
+// Audit Trail API
+// ----------------------------------------------------
+export const auditApi = {
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/audit-logs${query ? `?${query}` : ''}`);
+  },
 };
 
 // ----------------------------------------------------

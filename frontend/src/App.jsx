@@ -11,6 +11,7 @@ import { LedgersPage } from './pages/LedgersPage';
 import { UsersPage } from './pages/UsersPage';
 import { MyBillingsPage } from './pages/MyBillingsPage';
 import { AnalyticsDashboard } from './pages/AnalyticsDashboard';
+import { AuditLogPage } from './pages/AuditLogPage';
 import './App.css';
 
 const MainLayout = () => {
@@ -48,6 +49,8 @@ const MainLayout = () => {
         return isStaff ? <TarifsPage /> : <MyBillingsPage />;
       case 'ledgers':
         return isStaff ? <LedgersPage /> : <MyBillingsPage />;
+      case 'audit-logs':
+        return isStaff ? <AuditLogPage /> : <MyBillingsPage />;
       case 'users':
         return isAdmin ? <UsersPage /> : <Dashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case 'my-billings':
