@@ -34,34 +34,34 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Mobile backdrop positioned cleanly under navbar */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-x-0 top-[57px] bottom-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
 
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-50
-        w-64 bg-gray-950/90 border-r border-white/10 p-4
+        fixed md:static top-[57px] md:top-0 bottom-0 left-0 z-40
+        w-64 bg-gray-950/95 border-r border-white/10 p-4
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        flex flex-col justify-between
+        flex flex-col justify-between shrink-0
       `}>
         <div>
           {/* Header Mobile */}
-          <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10 md:hidden">
-            <span className="font-bold text-white text-sm">Navigasi SIMRS</span>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
-              <X size={20} />
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10 md:hidden">
+            <span className="font-bold text-white text-xs uppercase tracking-wider">Navigasi SIMRS</span>
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg">
+              <X size={18} />
             </button>
           </div>
 
-          <div className="mb-6 px-2">
+          <div className="mb-6 px-1">
             <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Portal Akses</p>
             <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg shrink-0">
                 <UserCheck size={18} />
               </div>
               <div className="overflow-hidden">
@@ -72,7 +72,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
           </div>
 
           <nav className="space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 px-2 mb-2">Menu Utama</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 px-1 mb-2">Menu Utama</p>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
