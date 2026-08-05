@@ -21,14 +21,14 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' 
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm animate-fade-in print:static print:p-0 print:bg-white print:backdrop-blur-none"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className={`glass-modal w-full ${maxWidth} max-h-[85vh] p-6 relative flex flex-col border border-white/20 shadow-2xl overflow-hidden my-auto print:max-h-none print:h-auto print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white`}
+        className={`glass-modal w-full ${maxWidth} max-h-[85vh] p-6 relative flex flex-col border border-white/20 shadow-2xl overflow-hidden my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10 shrink-0 no-print">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10 shrink-0">
           <h3 className="text-lg font-bold text-white tracking-wide">{title}</h3>
           <button
             onClick={onClose}
@@ -38,7 +38,7 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' 
             <X size={20} />
           </button>
         </div>
-        <div className="overflow-y-auto pr-1.5 flex-1 min-h-0 print:overflow-visible print:h-auto print:max-h-none">{children}</div>
+        <div className="overflow-y-auto pr-1.5 flex-1 min-h-0">{children}</div>
       </div>
     </div>,
     document.body

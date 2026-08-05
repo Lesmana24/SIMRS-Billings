@@ -15,78 +15,411 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
     }).format(num);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const items = billing.item || billing.BillingItems || [];
+
+  const handlePrint = () => {
+    // 1. Create a hidden iframe for zero-popup printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+
+    const formattedDate = billing.created_at ? new Date(billing.created_at).toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : '-';
+
+    const itemsHtml = items.length === 0 ? `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 10px; color: #64748b;">Tidak ada detail item tindakan medis.</td>
+      </tr>
+    ` : items.map((item, idx) => `
+      <tr>
+        <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px 8px; font-family: monospace;">${idx + 1}</td>
+        <td style="font-weight: 600; border: 1px solid #cbd5e1; padding: 6px 8px;">${item.item_name}</td>
+        <td style="text-align: right; font-family: monospace; border: 1px solid #cbd5e1; padding: 6px 8px;">${formatIDR(item.unit_price)}</td>
+        <td style="text-align: center; font-family: monospace; border: 1px solid #cbd5e1; padding: 6px 8px;">${item.quantity}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: 700; border: 1px solid #cbd5e1; padding: 6px 8px;">${formatIDR(item.sub_total)}</td>
+      </tr>
+    `).join('');
+
+    const proofHtml = billing.proof_of_payment ? `
+      <div style="margin-top: 12px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc;">
+        <p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #475569; margin-bottom: 6px;">
+          Foto Bukti Transfer Bank (ImageKit Cloud Verified)
+        </p>
+        <div style="text-align: center;">
+          <img src="${billing.proof_of_payment}" style="max-height: 140px; border-radius: 4px; border: 1px solid #cbd5e1;" />
+        </div>
+      </div>
+    ` : '';
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Struk Pembayaran Medis - BILL-${billing.ID || billing.id}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+            
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+            
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            
+            body {
+              font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+              color: #0f172a;
+              background: #ffffff;
+              padding: 10px;
+              font-size: 11px;
+              line-height: 1.4;
+            }
+
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #0f172a;
+              margin-bottom: 12px;
+            }
+
+            .title {
+              font-size: 17px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #0f172a;
+              letter-spacing: 0.5px;
+            }
+
+            .sub {
+              font-size: 10px;
+              color: #475569;
+            }
+
+            .badge {
+              display: inline-block;
+              padding: 3px 10px;
+              border-radius: 9999px;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              background-color: #dcfce7;
+              color: #15803d;
+              border: 1px solid #86efac;
+            }
+
+            .doc-title {
+              text-align: center;
+              background-color: #f8fafc;
+              border: 1px solid #e2e8f0;
+              padding: 6px;
+              border-radius: 6px;
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.8px;
+              text-transform: uppercase;
+              margin-bottom: 12px;
+            }
+
+            .meta-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+              background-color: #f8fafc;
+              border: 1px solid #e2e8f0;
+              padding: 10px;
+              border-radius: 6px;
+              margin-bottom: 12px;
+            }
+
+            .meta-item {
+              margin-bottom: 4px;
+            }
+            .meta-label {
+              font-size: 10px;
+              color: #64748b;
+              display: block;
+            }
+            .meta-val {
+              font-size: 11px;
+              font-weight: 700;
+              color: #0f172a;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 12px;
+            }
+
+            th {
+              background-color: #f1f5f9;
+              color: #0f172a;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              padding: 6px 8px;
+              border: 1px solid #94a3b8;
+              text-align: left;
+            }
+
+            td {
+              padding: 6px 8px;
+              border: 1px solid #cbd5e1;
+              font-size: 11px;
+              color: #0f172a;
+            }
+
+            .summary-box {
+              background-color: #f8fafc;
+              border: 1px solid #cbd5e1;
+              padding: 10px;
+              border-radius: 6px;
+              margin-bottom: 14px;
+            }
+
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              color: #334155;
+              margin-bottom: 3px;
+            }
+
+            .summary-total {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 13px;
+              font-weight: 800;
+              color: #0f172a;
+              border-top: 1px solid #94a3b8;
+              padding-top: 5px;
+              margin-top: 5px;
+            }
+
+            .signature-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
+              text-align: center;
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+
+            .signature-title {
+              font-size: 10px;
+              color: #475569;
+              margin-bottom: 30px;
+            }
+
+            .signature-name {
+              font-size: 10px;
+              font-weight: 700;
+              color: #0f172a;
+              border-bottom: 1px dashed #64748b;
+              display: inline-block;
+              padding: 0 16px 2px 16px;
+            }
+
+            .footer-note {
+              font-size: 8.5px;
+              color: #64748b;
+              text-align: center;
+              font-style: italic;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">RUMAH SAKIT UTAMA SIMRS</div>
+              <div class="sub">Sistem Informasi Manajemen Rumah Sakit • Divisi Keuangan & Billing</div>
+              <div class="sub">Jl. Kesehatan No. 45, Jakarta Pusat 10110 • Telp: (021) 555-0199 • Fax: (021) 555-0200</div>
+              <div class="sub" style="font-family: monospace;">www.simrs-utama.id • billing@simrs-utama.id</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="badge">${billing.status}</div>
+              <div style="font-family: monospace; font-size: 11px; font-weight: 700; margin-top: 4px;">NO: #BILL-${billing.ID || billing.id}</div>
+            </div>
+          </div>
+
+          <div class="doc-title">STRUK BUKTI PEMBAYARAN TAGIHAN MEDIS RESMI</div>
+
+          <div class="meta-grid">
+            <div>
+              <div class="meta-item">
+                <span class="meta-label">Nama Pasien:</span>
+                <span class="meta-val">${billing.patient_name || 'Pasien SIMRS'}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Metode Pembayaran:</span>
+                <span class="meta-val">${billing.proof_of_payment ? 'Transfer Bank (ImageKit Verified)' : 'Kasir Tunai / EDC SIMRS'}</span>
+              </div>
+            </div>
+            <div>
+              <div class="meta-item">
+                <span class="meta-label">Tanggal Transaksi:</span>
+                <span class="meta-val">${formattedDate}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Status Verifikasi Kasir:</span>
+                <span class="meta-val">${billing.status === 'PAID' ? 'LUNAS (Terverifikasi)' : billing.status}</span>
+              </div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 30px; text-align: center;">No</th>
+                <th>Tindakan / Layanan Medis</th>
+                <th style="text-align: right;">Harga Satuan</th>
+                <th style="text-align: center;">Jumlah</th>
+                <th style="text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="summary-box">
+            <div class="summary-row">
+              <span>Subtotal Tagihan Tindakan Medis:</span>
+              <span style="font-family: monospace; font-weight: 600;">${formatIDR(billing.total_amount)}</span>
+            </div>
+            <div class="summary-row">
+              <span>Potongan / Subsidi Klaim BPJS Kesehatan:</span>
+              <span style="font-family: monospace; font-weight: 600;">- ${formatIDR(billing.bpjs_amount)}</span>
+            </div>
+            <div class="summary-total">
+              <span>TOTAL DIBAYAR PASIEN (LUNAS):</span>
+              <span style="font-family: monospace; font-size: 13px;">${formatIDR(billing.patient_amount)}</span>
+            </div>
+          </div>
+
+          ${proofHtml}
+
+          <div class="signature-grid">
+            <div>
+              <div class="signature-title">Pasien / Penanggung Jawab</div>
+              <div class="signature-name">( ${billing.patient_name || '........................'} )</div>
+            </div>
+            <div>
+              <div class="signature-title">Petugas Kasir Keuangan RS</div>
+              <div style="font-size: 9px; font-weight: 700; border: 1px solid #16a34a; color: #16a34a; padding: 1px 6px; display: inline-block; margin-bottom: 6px;">
+                [ VERIFIKASI RESMI - SIMRS ]
+              </div><br/>
+              <div class="signature-name">( Petugas Kasir SIMRS )</div>
+            </div>
+          </div>
+
+          <div class="footer-note">
+            Bukti pembayaran ini diproses secara otomatis oleh Sistem Informasi Manajemen Rumah Sakit (SIMRS) Billing Engine dan merupakan dokumen sah.
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    // Trigger native browser print dialog from hidden iframe
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250);
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Struk Rincian Pembayaran Medis Resmi" maxWidth="max-w-2xl">
-      <div className="space-y-6 text-gray-200" id="printable-receipt">
+      <div className="space-y-4 text-gray-200" id="printable-receipt">
         {/* Kop Surat Resmi Rumah Sakit */}
-        <div className="pb-4 border-b-2 border-indigo-500/40 print:border-slate-800 flex items-start justify-between gap-4">
+        <div className="pb-3 border-b-2 border-indigo-500/40 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30 print:bg-slate-100 print:text-slate-900 print:border-slate-300">
-              <Hospital size={32} />
+            <div className="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+              <Hospital size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-white print:text-slate-900 tracking-wide uppercase">
+              <h2 className="text-lg font-extrabold text-white tracking-wide uppercase">
                 RUMAH SAKIT UTAMA SIMRS
               </h2>
-              <p className="text-xs text-gray-400 print:text-slate-600 font-medium">
+              <p className="text-xs text-gray-400 font-medium">
                 Sistem Informasi Manajemen Rumah Sakit • Divisi Keuangan & Billing
               </p>
-              <p className="text-[11px] text-gray-400 print:text-slate-500 mt-0.5">
+              <p className="text-[11px] text-gray-400 mt-0.5">
                 Jl. Kesehatan No. 45, Jakarta Pusat 10110 • Telp: (021) 555-0199 • Fax: (021) 555-0200
               </p>
-              <p className="text-[11px] text-indigo-400 print:text-slate-600 font-mono">
+              <p className="text-[11px] text-indigo-400 font-mono">
                 www.simrs-utama.id • billing@simrs-utama.id
               </p>
             </div>
           </div>
           <div className="text-right">
             <Badge variant={billing.status}>{billing.status}</Badge>
-            <p className="text-xs font-mono text-indigo-400 print:text-slate-700 font-bold mt-1.5">
+            <p className="text-xs font-mono text-indigo-400 font-bold mt-1">
               NO: #BILL-{billing.ID || billing.id}
             </p>
           </div>
         </div>
 
         {/* Judul Dokumen Invoice */}
-        <div className="text-center bg-white/5 print:bg-slate-100 py-2 rounded-lg border border-white/10 print:border-slate-300">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-white print:text-slate-900">
+        <div className="text-center bg-white/5 py-1.5 rounded-lg border border-white/10">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-white">
             STRUK BUKTI PEMBAYARAN TAGIHAN MEDIS RESMI
           </h3>
         </div>
 
         {/* Informasi Pasien & Rincian Administrasi */}
-        <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-white/5 border border-white/10 print:bg-slate-50 print:border-slate-300 text-xs">
-          <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <User size={15} className="text-indigo-400 print:text-slate-700" />
+              <User size={14} className="text-indigo-400" />
               <div>
-                <span className="text-[11px] text-gray-400 print:text-slate-500 block">Nama Pasien:</span>
-                <strong className="text-sm text-white print:text-slate-900 font-bold">{billing.patient_name || 'Pasien SIMRS'}</strong>
+                <span className="text-[11px] text-gray-400 block">Nama Pasien:</span>
+                <strong className="text-xs text-white font-bold">{billing.patient_name || 'Pasien SIMRS'}</strong>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <CreditCard size={15} className="text-indigo-400 print:text-slate-700" />
+              <CreditCard size={14} className="text-indigo-400" />
               <div>
-                <span className="text-[11px] text-gray-400 print:text-slate-500 block">Metode Pembayaran:</span>
-                <strong className="text-white print:text-slate-900">
+                <span className="text-[11px] text-gray-400 block">Metode Pembayaran:</span>
+                <strong className="text-white">
                   {billing.proof_of_payment ? 'Transfer Bank (ImageKit Verified)' : 'Kasir Tunai / EDC SIMRS'}
                 </strong>
               </div>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <Calendar size={15} className="text-indigo-400 print:text-slate-700" />
+              <Calendar size={14} className="text-indigo-400" />
               <div>
-                <span className="text-[11px] text-gray-400 print:text-slate-500 block">Tanggal Transaksi:</span>
-                <strong className="text-white print:text-slate-900 font-mono">
+                <span className="text-[11px] text-gray-400 block">Tanggal Transaksi:</span>
+                <strong className="text-white font-mono">
                   {billing.created_at ? new Date(billing.created_at).toLocaleString('id-ID', {
                     day: 'numeric',
                     month: 'long',
@@ -98,10 +431,10 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck size={15} className="text-emerald-400 print:text-slate-700" />
+              <ShieldCheck size={14} className="text-emerald-400" />
               <div>
-                <span className="text-[11px] text-gray-400 print:text-slate-500 block">Status Verifikasi Kasir:</span>
-                <strong className="text-emerald-400 print:text-slate-900 font-bold">
+                <span className="text-[11px] text-gray-400 block">Status Verifikasi Kasir:</span>
+                <strong className="text-emerald-400 font-bold">
                   {billing.status === 'PAID' ? 'LUNAS (Terverifikasi)' : billing.status}
                 </strong>
               </div>
@@ -111,11 +444,11 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
 
         {/* Tabel Rincian Tindakan Medis */}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 print:text-slate-900 mb-2 flex items-center gap-1.5">
-            <FileText size={14} className="text-indigo-400 print:text-slate-700" /> Rincian Tindakan Medis & Layanan Kesehatan
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-1.5 flex items-center gap-1.5">
+            <FileText size={13} className="text-indigo-400" /> Rincian Tindakan Medis & Layanan Kesehatan
           </h4>
-          <div className="table-container print:border print:border-slate-300">
-            <table className="table print-table">
+          <div className="table-container">
+            <table className="table">
               <thead>
                 <tr>
                   <th className="w-10 text-center">No</th>
@@ -128,18 +461,18 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center text-gray-400 print:text-slate-600 py-4">
+                    <td colSpan={5} className="text-center text-gray-400 py-3">
                       Tidak ada detail item tindakan medis.
                     </td>
                   </tr>
                 ) : (
                   items.map((item, idx) => (
                     <tr key={idx}>
-                      <td className="text-center text-xs font-mono text-gray-400 print:text-slate-600">{idx + 1}</td>
-                      <td className="font-semibold text-white print:text-slate-900">{item.item_name}</td>
-                      <td className="text-right number-font print:text-slate-800">{formatIDR(item.unit_price)}</td>
-                      <td className="text-center number-font print:text-slate-800">{item.quantity}</td>
-                      <td className="text-right number-font font-bold text-indigo-300 print:text-slate-900">
+                      <td className="text-center text-xs font-mono text-gray-400">{idx + 1}</td>
+                      <td className="font-semibold text-white">{item.item_name}</td>
+                      <td className="text-right number-font">{formatIDR(item.unit_price)}</td>
+                      <td className="text-center number-font">{item.quantity}</td>
+                      <td className="text-right number-font font-bold text-indigo-300">
                         {formatIDR(item.sub_total)}
                       </td>
                     </tr>
@@ -151,74 +484,54 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
         </div>
 
         {/* Ringkasan Kalkulasi Biaya & Subsidi BPJS */}
-        <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/20 print:bg-slate-100 print:border-slate-300 space-y-2 text-xs">
-          <div className="flex justify-between text-gray-300 print:text-slate-700">
+        <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/20 space-y-1.5 text-xs">
+          <div className="flex justify-between text-gray-300">
             <span>Subtotal Tagihan Tindakan Medis:</span>
-            <span className="number-font font-semibold text-white print:text-slate-900">{formatIDR(billing.total_amount)}</span>
+            <span className="number-font font-semibold text-white">{formatIDR(billing.total_amount)}</span>
           </div>
-          <div className="flex justify-between text-cyan-400 print:text-slate-700">
+          <div className="flex justify-between text-cyan-400">
             <span>Potongan / Subsidi Klaim BPJS Kesehatan:</span>
-            <span className="number-font font-semibold text-cyan-300 print:text-slate-900">- {formatIDR(billing.bpjs_amount)}</span>
+            <span className="number-font font-semibold text-cyan-300">- {formatIDR(billing.bpjs_amount)}</span>
           </div>
-          <div className="border-t border-white/10 print:border-slate-400 pt-2 flex justify-between items-center font-bold text-sm">
-            <span className="text-white print:text-slate-900 uppercase">TOTAL DIBAYAR PASIEN (LUNAS):</span>
-            <span className="number-font text-emerald-400 print:text-slate-900 text-base">{formatIDR(billing.patient_amount)}</span>
+          <div className="border-t border-white/10 pt-1.5 flex justify-between items-center font-bold text-xs">
+            <span className="text-white uppercase">TOTAL DIBAYAR PASIEN (LUNAS):</span>
+            <span className="number-font text-emerald-400 text-sm">{formatIDR(billing.patient_amount)}</span>
           </div>
         </div>
 
         {/* Bukti Transfer ImageKit Cloud (Jika Ada) */}
         {billing.proof_of_payment && (
-          <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 print:border-slate-300 space-y-2">
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 print:text-slate-900 flex items-center gap-1.5">
-                <ImageIcon size={14} className="text-indigo-400 print:text-slate-700" /> Foto Bukti Transfer Bank (ImageKit Cloud)
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <ImageIcon size={13} className="text-indigo-400" /> Foto Bukti Transfer Bank (ImageKit Cloud)
               </h4>
               <a 
                 href={billing.proof_of_payment} 
                 target="_blank" 
                 rel="noreferrer"
-                className="text-[11px] text-indigo-400 hover:underline flex items-center gap-1 font-semibold no-print"
+                className="text-[11px] text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
               >
                 Buka Foto Penuh <ExternalLink size={11} />
               </a>
             </div>
-            <div className="rounded-lg overflow-hidden border border-white/10 print:border-slate-300 bg-black/40 print:bg-slate-100 p-2 max-h-40 flex items-center justify-center">
+            <div className="rounded-lg overflow-hidden border border-white/10 bg-black/40 p-1.5 max-h-32 flex items-center justify-center">
               <img 
                 src={billing.proof_of_payment} 
                 alt="Bukti Transfer ImageKit" 
-                className="max-h-36 object-contain rounded"
+                className="max-h-28 object-contain rounded"
               />
             </div>
           </div>
         )}
 
-        {/* Stempel & Kolom Tanda Tangan Resmi (Printed Section) */}
-        <div className="pt-4 border-t border-white/10 print:border-slate-300 grid grid-cols-2 gap-8 text-center text-xs">
-          <div>
-            <p className="text-gray-400 print:text-slate-600 mb-12">Pasien / Penanggung Jawab</p>
-            <p className="font-bold text-white print:text-slate-900 border-b border-dashed border-gray-600 print:border-slate-800 inline-block px-8 pb-1">
-              ( {billing.patient_name || '........................'} )
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400 print:text-slate-600 mb-2">Petugas Kasir Keuangan RS</p>
-            <div className="inline-block px-3 py-1 rounded border border-emerald-500/40 text-emerald-400 print:text-slate-800 print:border-slate-800 font-mono text-[10px] font-bold uppercase mb-4">
-              [ VERIFIKASI RESMI - SIMRS ]
-            </div>
-            <br />
-            <p className="font-bold text-white print:text-slate-900 border-b border-dashed border-gray-600 print:border-slate-800 inline-block px-8 pb-1">
-              ( Petugas Kasir SIMRS )
-            </p>
-          </div>
-        </div>
-
         {/* Footer Catatan Hak Cipta & Tombol Cetak */}
-        <div className="pt-2">
-          <p className="text-[10px] text-gray-500 print:text-slate-500 text-center italic">
+        <div className="pt-1">
+          <p className="text-[9px] text-gray-500 text-center italic">
             Bukti pembayaran ini diproses secara otomatis oleh Sistem Informasi Manajemen Rumah Sakit (SIMRS) Billing Engine dan merupakan dokumen sah.
           </p>
 
-          <div className="flex items-center justify-between pt-4 no-print border-t border-white/10">
+          <div className="flex items-center justify-between pt-3 border-t border-white/10">
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <CheckCircle size={14} className="text-emerald-400" /> Transaksi Terverifikasi Sistem SIMRS
             </div>
@@ -227,7 +540,7 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
                 Tutup
               </button>
               <button type="button" onClick={handlePrint} className="btn btn-emerald btn-sm">
-                <Printer size={16} /> Cetak Struk / Invoice (A4 / Cetak)
+                <Printer size={16} /> Cetak Struk / Invoice (A4 / PDF)
               </button>
             </div>
           </div>
