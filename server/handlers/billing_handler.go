@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 )
 
 func CreateBilling(c *gin.Context) {
@@ -111,12 +112,45 @@ func PayBilling(c *gin.Context) {
 		proofURL = c.PostForm("proof_of_payment")
 	}
 
+	paymentMethod := c.PostForm("payment_method")
+	cashAmtStr := c.PostForm("cash_amount")
+	transferAmtStr := c.PostForm("transfer_amount")
+
+	var cashAmt, transferAmt decimal.Decimal
+	if cashAmtStr != "" {
+		cashAmt, _ = decimal.NewFromString(cashAmtStr)
+	}
+	if transferAmtStr != "" {
+		transferAmt, _ = decimal.NewFromString(transferAmtStr)
+	}
+
+	if paymentMethod == "" {
+		type PayBody struct {
+			PaymentMethod  string          `json:"payment_method"`
+			CashAmount     decimal.Decimal `json:"cash_amount"`
+			TransferAmount decimal.Decimal `json:"transfer_amount"`
+		}
+		var pb PayBody
+		if err := c.ShouldBindJSON(&pb); err == nil {
+			paymentMethod = pb.PaymentMethod
+			cashAmt = pb.CashAmount
+			transferAmt = pb.TransferAmount
+		}
+	}
+
 	existingBilling, _ := services.GetBillingByID(uint(billingID))
 	if proofURL == "" && existingBilling != nil && existingBilling.Status == "WAITING_VERIFICATION" {
 		proofURL = existingBilling.ProofOfPayment
 	}
 
-	billing, err := services.ProcessPayment(uint(billingID), idempotencyKey, proofURL)
+	billing, err := services.ProcessPaymentDetailed(&services.ProcessPaymentRequest{
+		BillingID:      uint(billingID),
+		IdempotencyKey: idempotencyKey,
+		ProofURL:       proofURL,
+		PaymentMethod:  paymentMethod,
+		CashAmount:     cashAmt,
+		TransferAmount: transferAmt,
+	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

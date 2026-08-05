@@ -489,8 +489,13 @@ export const AnalyticsDashboard = () => {
             </div>
 
             <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex justify-between items-center">
-              <span className="text-cyan-300 font-medium">Subsidi BPJS ({bpjs.bpjs_percentage?.toFixed(1) || 0}%)</span>
+              <span className="text-cyan-300 font-medium">Subsidi BPJS Kesehatan ({bpjs.bpjs_percentage?.toFixed(1) || 0}%)</span>
               <strong className="text-white font-mono">{formatIDR(bpjs.total_bpjs)}</strong>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 flex justify-between items-center">
+              <span className="text-purple-300 font-medium">Asuransi Swasta ({bpjs.private_ins_percentage?.toFixed(1) || 0}%)</span>
+              <strong className="text-white font-mono">{formatIDR(bpjs.total_private_ins)}</strong>
             </div>
           </div>
         </div>

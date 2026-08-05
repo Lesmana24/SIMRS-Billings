@@ -17,17 +17,30 @@ type ActionItemInput struct {
 }
 
 type CreateBillingRequest struct {
-	PatientUserID uint              `json:"patient_user_id" binding:"required"`
-	PatientName   string            `json:"patient_name"`
-	BPJSClaim     decimal.Decimal   `json:"bpjs_claim"`
-	ActionIDs     []uint            `json:"action_ids"`
-	Items         []ActionItemInput `json:"items"`
+	PatientUserID     uint              `json:"patient_user_id" binding:"required"`
+	PatientName       string            `json:"patient_name"`
+	BPJSClaim         decimal.Decimal   `json:"bpjs_claim"`
+	InsuranceProvider string            `json:"insurance_provider"`
+	InsuranceClaim    decimal.Decimal   `json:"insurance_claim"`
+	ActionIDs         []uint            `json:"action_ids"`
+	Items             []ActionItemInput `json:"items"`
 }
 
 type UpdateBillingRequest struct {
-	PatientName string          `json:"patient_name"`
-	BPJSClaim   decimal.Decimal `json:"bpjs_claim"`
-	Status      string          `json:"status"`
+	PatientName       string          `json:"patient_name"`
+	BPJSClaim         decimal.Decimal `json:"bpjs_claim"`
+	InsuranceProvider string          `json:"insurance_provider"`
+	InsuranceClaim    decimal.Decimal `json:"insurance_claim"`
+	Status            string          `json:"status"`
+}
+
+type ProcessPaymentRequest struct {
+	BillingID      uint            `json:"billing_id"`
+	IdempotencyKey string          `json:"idempotency_key"`
+	ProofURL       string          `json:"proof_url"`
+	PaymentMethod  string          `json:"payment_method"`
+	CashAmount     decimal.Decimal `json:"cash_amount"`
+	TransferAmount decimal.Decimal `json:"transfer_amount"`
 }
 
 func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
@@ -38,6 +51,17 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 
 	if req.PatientName == "" {
 		req.PatientName = patient.Username
+	}
+
+	// Determine Insurance Provider and Claim Amount
+	provider := req.InsuranceProvider
+	if provider == "" {
+		provider = "BPJS Kesehatan"
+	}
+
+	claimAmt := req.InsuranceClaim
+	if claimAmt.IsZero() && !req.BPJSClaim.IsZero() {
+		claimAmt = req.BPJSClaim
 	}
 
 	// Build map of actionID -> quantity
@@ -94,19 +118,21 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 		})
 	}
 
-	patientAmount := totalAmount.Sub(req.BPJSClaim)
+	patientAmount := totalAmount.Sub(claimAmt)
 	if patientAmount.IsNegative() {
 		patientAmount = decimal.Zero
 	}
 
 	billing := models.MedicalBilling{
-		PatientUserID: req.PatientUserID,
-		PatientName:   req.PatientName,
-		TotalAmount:   totalAmount,
-		BPJSAmount:    req.BPJSClaim,
-		PatientAmount: patientAmount,
-		Status:        "Pending",
-		Items:         items,
+		PatientUserID:     req.PatientUserID,
+		PatientName:       req.PatientName,
+		TotalAmount:       totalAmount,
+		BPJSAmount:        claimAmt,
+		InsuranceProvider: provider,
+		InsuranceClaim:    claimAmt,
+		PatientAmount:     patientAmount,
+		Status:            "Pending",
+		Items:             items,
 	}
 
 	if err := config.DB.Create(&billing).Error; err != nil {
@@ -117,40 +143,102 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 }
 
 func ProcessPayment(billingID uint, idempotencyKey string, proofURL string) (*models.MedicalBilling, error) {
+	return ProcessPaymentDetailed(&ProcessPaymentRequest{
+		BillingID:      billingID,
+		IdempotencyKey: idempotencyKey,
+		ProofURL:       proofURL,
+	})
+}
+
+func ProcessPaymentDetailed(req *ProcessPaymentRequest) (*models.MedicalBilling, error) {
 	var billing models.MedicalBilling
 	err := config.DB.Transaction(func(tx *gorm.DB) error {
 		var existingLog models.IdempotencyLog
-		if err := tx.Where("idempotency_key = ?", idempotencyKey).First(&existingLog).Error; err == nil {
-			return tx.Preload("Items").First(&billing, billingID).Error
+		if err := tx.Where("idempotency_key = ?", req.IdempotencyKey).First(&existingLog).Error; err == nil {
+			return tx.Preload("Items").First(&billing, req.BillingID).Error
 		}
-		if err := tx.First(&billing, billingID).Error; err != nil {
+		if err := tx.First(&billing, req.BillingID).Error; err != nil {
 			return errors.New("Tagihan tidak ditemukan")
 		}
 		if billing.Status == "PAID" {
 			return errors.New("Tagihan sudah Lunas sebelumnya")
 		}
 
+		method := req.PaymentMethod
+		if method == "" {
+			if req.ProofURL != "" {
+				method = "TRANSFER"
+			} else {
+				method = "CASH"
+			}
+		}
+
+		cashAmt := req.CashAmount
+		transferAmt := req.TransferAmount
+
+		if method == "SPLIT" {
+			if !cashAmt.Add(transferAmt).Equal(billing.PatientAmount) {
+				return fmt.Errorf("Jumlah pembayaran split (Kasir: Rp %s + Transfer: Rp %s = Rp %s) harus SAMA PERSIS dengan total tagihan bersih (Rp %s)",
+					cashAmt.StringFixed(0), transferAmt.StringFixed(0), cashAmt.Add(transferAmt).StringFixed(0), billing.PatientAmount.StringFixed(0))
+			}
+		} else if method == "CASH" {
+			cashAmt = billing.PatientAmount
+			transferAmt = decimal.Zero
+		} else if method == "TRANSFER" || method == "EDC" {
+			transferAmt = billing.PatientAmount
+			cashAmt = decimal.Zero
+		}
+
 		updates := map[string]interface{}{
 			"status":           "PAID",
-			"proof_of_payment": proofURL,
+			"proof_of_payment": req.ProofURL,
+			"payment_method":   method,
+			"cash_amount":      cashAmt,
+			"transfer_amount":  transferAmt,
 		}
 
 		if err := tx.Model(&billing).Updates(updates).Error; err != nil {
 			return err
 		}
 
-		ledger := models.PaymentLedger{
-			BillingID:   billingID,
-			EntryType:   "DEBIT",
-			Amount:      billing.PatientAmount,
-			Description: fmt.Sprintf("Pembayaran Tagihan pasien %s", billing.PatientName),
-		}
-		if err := tx.Create(&ledger).Error; err != nil {
-			return err
+		// Write Payment Ledgers
+		if method == "SPLIT" {
+			if !cashAmt.IsZero() {
+				ledgerCash := models.PaymentLedger{
+					BillingID:   req.BillingID,
+					EntryType:   "DEBIT (CASH)",
+					Amount:      cashAmt,
+					Description: fmt.Sprintf("Pembayaran Kasir Tunai (Split) pasien %s", billing.PatientName),
+				}
+				if err := tx.Create(&ledgerCash).Error; err != nil {
+					return err
+				}
+			}
+			if !transferAmt.IsZero() {
+				ledgerTransfer := models.PaymentLedger{
+					BillingID:   req.BillingID,
+					EntryType:   "DEBIT (TRANSFER)",
+					Amount:      transferAmt,
+					Description: fmt.Sprintf("Pembayaran Transfer Bank/EDC (Split) pasien %s", billing.PatientName),
+				}
+				if err := tx.Create(&ledgerTransfer).Error; err != nil {
+					return err
+				}
+			}
+		} else {
+			ledger := models.PaymentLedger{
+				BillingID:   req.BillingID,
+				EntryType:   fmt.Sprintf("DEBIT (%s)", method),
+				Amount:      billing.PatientAmount,
+				Description: fmt.Sprintf("Pembayaran Tagihan (%s) pasien %s", method, billing.PatientName),
+			}
+			if err := tx.Create(&ledger).Error; err != nil {
+				return err
+			}
 		}
 
 		logEntry := models.IdempotencyLog{
-			IdempotencyKey: idempotencyKey,
+			IdempotencyKey: req.IdempotencyKey,
 			ResponseBody:   "PAID",
 		}
 		if err := tx.Create(&logEntry).Error; err != nil {
@@ -161,7 +249,7 @@ func ProcessPayment(billingID uint, idempotencyKey string, proofURL string) (*mo
 	if err != nil {
 		return nil, err
 	}
-	return GetBillingByID(billingID)
+	return GetBillingByID(req.BillingID)
 }
 
 func SubmitPaymentProof(billingID uint, proofURL string) (*models.MedicalBilling, error) {
@@ -177,6 +265,7 @@ func SubmitPaymentProof(billingID uint, proofURL string) (*models.MedicalBilling
 	updates := map[string]interface{}{
 		"status":           "WAITING_VERIFICATION",
 		"proof_of_payment": proofURL,
+		"payment_method":   "TRANSFER",
 	}
 
 	if err := config.DB.Model(&billing).Updates(updates).Error; err != nil {
@@ -254,9 +343,20 @@ func UpdateBilling(id uint, req *UpdateBillingRequest) (*models.MedicalBilling, 
 	if req.Status != "" {
 		updates["status"] = req.Status
 	}
-	if !req.BPJSClaim.IsZero() {
-		updates["bpjs_amount"] = req.BPJSClaim
-		newPatientAmount := billing.TotalAmount.Sub(req.BPJSClaim)
+
+	claimAmt := req.InsuranceClaim
+	if claimAmt.IsZero() && !req.BPJSClaim.IsZero() {
+		claimAmt = req.BPJSClaim
+	}
+
+	if req.InsuranceProvider != "" {
+		updates["insurance_provider"] = req.InsuranceProvider
+	}
+
+	if !claimAmt.IsZero() {
+		updates["insurance_claim"] = claimAmt
+		updates["bpjs_amount"] = claimAmt
+		newPatientAmount := billing.TotalAmount.Sub(claimAmt)
 		if newPatientAmount.IsNegative() {
 			newPatientAmount = decimal.Zero
 		}

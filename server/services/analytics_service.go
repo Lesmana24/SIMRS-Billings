@@ -27,11 +27,13 @@ type DailyTrend struct {
 }
 
 type BPJSSplit struct {
-	TotalBPJS         decimal.Decimal `json:"total_bpjs"`
-	TotalPatient      decimal.Decimal `json:"total_patient"`
-	TotalGross        decimal.Decimal `json:"total_gross"`
-	BPJSPercentage    float64         `json:"bpjs_percentage"`
-	PatientPercentage float64         `json:"patient_percentage"`
+	TotalBPJS            decimal.Decimal `json:"total_bpjs"`
+	TotalPrivateIns      decimal.Decimal `json:"total_private_ins"`
+	TotalPatient         decimal.Decimal `json:"total_patient"`
+	TotalGross           decimal.Decimal `json:"total_gross"`
+	BPJSPercentage       float64         `json:"bpjs_percentage"`
+	PrivateInsPercentage float64         `json:"private_ins_percentage"`
+	PatientPercentage    float64         `json:"patient_percentage"`
 }
 
 type TopMedicalAction struct {
@@ -90,11 +92,15 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 		Where("status = ?", "PAID").
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&totalRev)
 
-	// 5. BPJS Split vs Patient Direct Paid for Selected Month
-	var totalBPJS, totalPatient, totalGross decimal.Decimal
+	// 5. BPJS Split vs Private Insurance vs Patient Direct Paid for Selected Month
+	var totalBPJS, totalPrivateIns, totalPatient, totalGross decimal.Decimal
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
+		Where("status = ? AND created_at >= ? AND created_at < ? AND (insurance_provider = ? OR insurance_provider IS NULL OR insurance_provider = '')", "PAID", startOfMonth, endOfMonth, "BPJS Kesehatan").
 		Select("COALESCE(SUM(bpjs_amount), 0)").Scan(&totalBPJS)
+
+	db.Model(&models.MedicalBilling{}).
+		Where("status = ? AND created_at >= ? AND created_at < ? AND insurance_provider != ? AND insurance_provider != ''", "PAID", startOfMonth, endOfMonth, "BPJS Kesehatan").
+		Select("COALESCE(SUM(insurance_claim), 0)").Scan(&totalPrivateIns)
 
 	db.Model(&models.MedicalBilling{}).
 		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
@@ -105,12 +111,16 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 		Select("COALESCE(SUM(total_amount), 0)").Scan(&totalGross)
 
 	bpjsPct := 0.0
+	privateInsPct := 0.0
 	patientPct := 0.0
 	if !totalGross.IsZero() {
 		bpjsFloat, _ := totalBPJS.Float64()
+		privateInsFloat, _ := totalPrivateIns.Float64()
 		patientFloat, _ := totalPatient.Float64()
 		grossFloat, _ := totalGross.Float64()
+
 		bpjsPct = (bpjsFloat / grossFloat) * 100
+		privateInsPct = (privateInsFloat / grossFloat) * 100
 		patientPct = (patientFloat / grossFloat) * 100
 	}
 
@@ -188,11 +198,13 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 			TotalRevenue:   totalRev,
 		},
 		BPJSSplit: BPJSSplit{
-			TotalBPJS:         totalBPJS,
-			TotalPatient:      totalPatient,
-			TotalGross:        totalGross,
-			BPJSPercentage:    bpjsPct,
-			PatientPercentage: patientPct,
+			TotalBPJS:            totalBPJS,
+			TotalPrivateIns:      totalPrivateIns,
+			TotalPatient:         totalPatient,
+			TotalGross:           totalGross,
+			BPJSPercentage:       bpjsPct,
+			PrivateInsPercentage: privateInsPct,
+			PatientPercentage:    patientPct,
 		},
 		DailyTrends:       dailyTrends,
 		TopActions:        topActions,
@@ -235,8 +247,10 @@ func GenerateFinancialReportCSV(month, year int) ([]byte, error) {
 		"Nama Pasien",
 		"Detail Tindakan Medis",
 		"Total Billing (IDR)",
-		"Subsidi BPJS (IDR)",
+		"Penyedia Asuransi",
+		"Subsidi / Klaim Asuransi (IDR)",
 		"Tagihan Bersih Pasien (IDR)",
+		"Metode Pembayaran",
 		"Status",
 		"Bukti Pembayaran",
 	}
@@ -253,14 +267,31 @@ func GenerateFinancialReportCSV(month, year int) ([]byte, error) {
 			itemsStr += fmt.Sprintf("%s (%dx Rp %s)", itm.ItemName, itm.Quantity, itm.UnitPrice.StringFixed(0))
 		}
 
+		provider := b.InsuranceProvider
+		if provider == "" {
+			provider = "BPJS Kesehatan"
+		}
+
+		claimVal := b.InsuranceClaim
+		if claimVal.IsZero() {
+			claimVal = b.BPJSAmount
+		}
+
+		method := b.PaymentMethod
+		if method == "" {
+			method = "CASH"
+		}
+
 		record := []string{
 			fmt.Sprintf("BILL-%d", b.ID),
 			b.CreatedAt.Format("2006-01-02 15:04:05"),
 			b.PatientName,
 			itemsStr,
 			b.TotalAmount.StringFixed(0),
-			b.BPJSAmount.StringFixed(0),
+			provider,
+			claimVal.StringFixed(0),
 			b.PatientAmount.StringFixed(0),
+			method,
 			b.Status,
 			b.ProofOfPayment,
 		}

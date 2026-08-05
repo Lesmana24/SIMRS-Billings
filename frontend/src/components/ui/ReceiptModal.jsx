@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from './Modal';
 import { Badge } from './Badge';
-import { Printer, CheckCircle, Hospital, Calendar, User, FileText, ExternalLink, Image as ImageIcon, CreditCard, ShieldCheck } from 'lucide-react';
+import { Printer, CheckCircle, Hospital, Calendar, User, FileText, ExternalLink, Image as ImageIcon, CreditCard, ShieldCheck, Building } from 'lucide-react';
 
 export const ReceiptModal = ({ isOpen, onClose, billing }) => {
   if (!billing) return null;
@@ -16,9 +16,22 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
   };
 
   const items = billing.item || billing.BillingItems || [];
+  const provider = billing.insurance_provider || 'BPJS Kesehatan';
+  const claimAmount = billing.insurance_claim || billing.bpjs_amount || 0;
+
+  const getPaymentMethodDisplay = () => {
+    const method = billing.payment_method || (billing.proof_of_payment ? 'TRANSFER' : 'CASH');
+    if (method === 'SPLIT') {
+      const cash = formatIDR(billing.cash_amount);
+      const transfer = formatIDR(billing.transfer_amount);
+      return `SPLIT PAYMENT (${cash} Tunai Kasir + ${transfer} Transfer/EDC)`;
+    }
+    if (method === 'TRANSFER') return 'Transfer Bank (ImageKit Verified)';
+    if (method === 'EDC') return 'Kartu Debit / EDC Kasir';
+    return 'Tunai Kasir (Cash)';
+  };
 
   const handlePrint = () => {
-    // 1. Create a hidden iframe for zero-popup printing
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -72,181 +85,28 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
             
-            @page {
-              size: A4 portrait;
-              margin: 10mm;
-            }
-            
-            * {
-              box-sizing: border-box;
-              margin: 0;
-              padding: 0;
-            }
-            
-            body {
-              font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-              color: #0f172a;
-              background: #ffffff;
-              padding: 10px;
-              font-size: 11px;
-              line-height: 1.4;
-            }
-
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              padding-bottom: 8px;
-              border-bottom: 2px solid #0f172a;
-              margin-bottom: 12px;
-            }
-
-            .title {
-              font-size: 17px;
-              font-weight: 800;
-              text-transform: uppercase;
-              color: #0f172a;
-              letter-spacing: 0.5px;
-            }
-
-            .sub {
-              font-size: 10px;
-              color: #475569;
-            }
-
-            .badge {
-              display: inline-block;
-              padding: 3px 10px;
-              border-radius: 9999px;
-              font-size: 10px;
-              font-weight: 700;
-              text-transform: uppercase;
-              background-color: #dcfce7;
-              color: #15803d;
-              border: 1px solid #86efac;
-            }
-
-            .doc-title {
-              text-align: center;
-              background-color: #f8fafc;
-              border: 1px solid #e2e8f0;
-              padding: 6px;
-              border-radius: 6px;
-              font-size: 11px;
-              font-weight: 700;
-              letter-spacing: 0.8px;
-              text-transform: uppercase;
-              margin-bottom: 12px;
-            }
-
-            .meta-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 10px;
-              background-color: #f8fafc;
-              border: 1px solid #e2e8f0;
-              padding: 10px;
-              border-radius: 6px;
-              margin-bottom: 12px;
-            }
-
-            .meta-item {
-              margin-bottom: 4px;
-            }
-            .meta-label {
-              font-size: 10px;
-              color: #64748b;
-              display: block;
-            }
-            .meta-val {
-              font-size: 11px;
-              font-weight: 700;
-              color: #0f172a;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 12px;
-            }
-
-            th {
-              background-color: #f1f5f9;
-              color: #0f172a;
-              font-size: 10px;
-              font-weight: 700;
-              text-transform: uppercase;
-              padding: 6px 8px;
-              border: 1px solid #94a3b8;
-              text-align: left;
-            }
-
-            td {
-              padding: 6px 8px;
-              border: 1px solid #cbd5e1;
-              font-size: 11px;
-              color: #0f172a;
-            }
-
-            .summary-box {
-              background-color: #f8fafc;
-              border: 1px solid #cbd5e1;
-              padding: 10px;
-              border-radius: 6px;
-              margin-bottom: 14px;
-            }
-
-            .summary-row {
-              display: flex;
-              justify-content: space-between;
-              font-size: 11px;
-              color: #334155;
-              margin-bottom: 3px;
-            }
-
-            .summary-total {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              font-size: 13px;
-              font-weight: 800;
-              color: #0f172a;
-              border-top: 1px solid #94a3b8;
-              padding-top: 5px;
-              margin-top: 5px;
-            }
-
-            .signature-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 16px;
-              text-align: center;
-              margin-top: 20px;
-              margin-bottom: 10px;
-            }
-
-            .signature-title {
-              font-size: 10px;
-              color: #475569;
-              margin-bottom: 30px;
-            }
-
-            .signature-name {
-              font-size: 10px;
-              font-weight: 700;
-              color: #0f172a;
-              border-bottom: 1px dashed #64748b;
-              display: inline-block;
-              padding: 0 16px 2px 16px;
-            }
-
-            .footer-note {
-              font-size: 8.5px;
-              color: #64748b;
-              text-align: center;
-              font-style: italic;
-              margin-top: 10px;
-            }
+            @page { size: A4 portrait; margin: 10mm; }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; color: #0f172a; background: #ffffff; padding: 10px; font-size: 11px; line-height: 1.4; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; border-bottom: 2px solid #0f172a; margin-bottom: 12px; }
+            .title { font-size: 17px; font-weight: 800; text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px; }
+            .sub { font-size: 10px; color: #475569; }
+            .badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 10px; font-weight: 700; text-transform: uppercase; background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+            .doc-title { text-align: center; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px; }
+            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+            .meta-item { margin-bottom: 4px; }
+            .meta-label { font-size: 10px; color: #64748b; display: block; }
+            .meta-val { font-size: 11px; font-weight: 700; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+            th { background-color: #f1f5f9; color: #0f172a; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 6px 8px; border: 1px solid #94a3b8; text-align: left; }
+            td { padding: 6px 8px; border: 1px solid #cbd5e1; font-size: 11px; color: #0f172a; }
+            .summary-box { background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; margin-bottom: 14px; }
+            .summary-row { display: flex; justify-content: space-between; font-size: 11px; color: #334155; margin-bottom: 3px; }
+            .summary-total { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; color: #0f172a; border-top: 1px solid #94a3b8; padding-top: 5px; margin-top: 5px; }
+            .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: center; margin-top: 20px; margin-bottom: 10px; }
+            .signature-title { font-size: 10px; color: #475569; margin-bottom: 30px; }
+            .signature-name { font-size: 10px; font-weight: 700; color: #0f172a; border-bottom: 1px dashed #64748b; display: inline-block; padding: 0 16px 2px 16px; }
+            .footer-note { font-size: 8.5px; color: #64748b; text-align: center; font-style: italic; margin-top: 10px; }
           </style>
         </head>
         <body>
@@ -273,17 +133,17 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
               </div>
               <div class="meta-item">
                 <span class="meta-label">Metode Pembayaran:</span>
-                <span class="meta-val">${billing.proof_of_payment ? 'Transfer Bank (ImageKit Verified)' : 'Kasir Tunai / EDC SIMRS'}</span>
+                <span class="meta-val">${getPaymentMethodDisplay()}</span>
               </div>
             </div>
             <div>
               <div class="meta-item">
-                <span class="meta-label">Tanggal Transaksi:</span>
-                <span class="meta-val">${formattedDate}</span>
+                <span class="meta-label">Penyedia Asuransi:</span>
+                <span class="meta-val">${provider}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-label">Status Verifikasi Kasir:</span>
-                <span class="meta-val">${billing.status === 'PAID' ? 'LUNAS (Terverifikasi)' : billing.status}</span>
+                <span class="meta-label">Tanggal Transaksi:</span>
+                <span class="meta-val">${formattedDate}</span>
               </div>
             </div>
           </div>
@@ -309,8 +169,8 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
               <span style="font-family: monospace; font-weight: 600;">${formatIDR(billing.total_amount)}</span>
             </div>
             <div class="summary-row">
-              <span>Potongan / Subsidi Klaim BPJS Kesehatan:</span>
-              <span style="font-family: monospace; font-weight: 600;">- ${formatIDR(billing.bpjs_amount)}</span>
+              <span>Klaim Subsidi ${provider}:</span>
+              <span style="font-family: monospace; font-weight: 600;">- ${formatIDR(claimAmount)}</span>
             </div>
             <div class="summary-total">
               <span>TOTAL DIBAYAR PASIEN (LUNAS):</span>
@@ -342,7 +202,6 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
     `);
     doc.close();
 
-    // Trigger native browser print dialog from hidden iframe
     setTimeout(() => {
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
@@ -408,13 +267,20 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
               <div>
                 <span className="text-[11px] text-gray-400 block">Metode Pembayaran:</span>
                 <strong className="text-white">
-                  {billing.proof_of_payment ? 'Transfer Bank (ImageKit Verified)' : 'Kasir Tunai / EDC SIMRS'}
+                  {getPaymentMethodDisplay()}
                 </strong>
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Building size={14} className="text-cyan-400" />
+              <div>
+                <span className="text-[11px] text-gray-400 block">Penyedia Asuransi:</span>
+                <strong className="text-cyan-300 font-bold">{provider}</strong>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <Calendar size={14} className="text-indigo-400" />
               <div>
@@ -427,15 +293,6 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
                     hour: '2-digit',
                     minute: '2-digit'
                   }) : '-'}
-                </strong>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <div>
-                <span className="text-[11px] text-gray-400 block">Status Verifikasi Kasir:</span>
-                <strong className="text-emerald-400 font-bold">
-                  {billing.status === 'PAID' ? 'LUNAS (Terverifikasi)' : billing.status}
                 </strong>
               </div>
             </div>
@@ -483,15 +340,15 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
           </div>
         </div>
 
-        {/* Ringkasan Kalkulasi Biaya & Subsidi BPJS */}
+        {/* Ringkasan Kalkulasi Biaya & Subsidi BPJS/Asuransi */}
         <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/20 space-y-1.5 text-xs">
           <div className="flex justify-between text-gray-300">
             <span>Subtotal Tagihan Tindakan Medis:</span>
             <span className="number-font font-semibold text-white">{formatIDR(billing.total_amount)}</span>
           </div>
           <div className="flex justify-between text-cyan-400">
-            <span>Potongan / Subsidi Klaim BPJS Kesehatan:</span>
-            <span className="number-font font-semibold text-cyan-300">- {formatIDR(billing.bpjs_amount)}</span>
+            <span>Klaim Subsidi {provider}:</span>
+            <span className="number-font font-semibold text-cyan-300">- {formatIDR(claimAmount)}</span>
           </div>
           <div className="border-t border-white/10 pt-1.5 flex justify-between items-center font-bold text-xs">
             <span className="text-white uppercase">TOTAL DIBAYAR PASIEN (LUNAS):</span>

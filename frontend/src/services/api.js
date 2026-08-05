@@ -89,13 +89,26 @@ export const billingApi = {
   },
 
   // Approve & Process payment (Cashier / Admin verification -> status PAID)
-  pay: (id, idempotencyKey, proofFile) => {
+  pay: (id, idempotencyKey, options = {}) => {
     const key = idempotencyKey || `PAY-BILLING-${id}-${Date.now()}`;
     const token = localStorage.getItem('simrs_token');
+
+    let proofFile, payment_method, cash_amount, transfer_amount;
+    if (typeof options === 'object' && options !== null && !(options instanceof File)) {
+      proofFile = options.proofFile;
+      payment_method = options.payment_method;
+      cash_amount = options.cash_amount;
+      transfer_amount = options.transfer_amount;
+    } else if (options instanceof File) {
+      proofFile = options;
+    }
 
     if (proofFile) {
       const formData = new FormData();
       formData.append('proof_file', proofFile);
+      if (payment_method) formData.append('payment_method', payment_method);
+      if (cash_amount) formData.append('cash_amount', cash_amount);
+      if (transfer_amount) formData.append('transfer_amount', transfer_amount);
 
       return fetch(`${API_BASE_URL}/billings/${id}/pay`, {
         method: 'POST',
@@ -117,6 +130,11 @@ export const billingApi = {
       method: 'POST',
       headers: {
         'X-Idempotency-Key': key,
+      },
+      body: {
+        payment_method: payment_method || 'CASH',
+        cash_amount: Number(cash_amount) || 0,
+        transfer_amount: Number(transfer_amount) || 0,
       },
     });
   },

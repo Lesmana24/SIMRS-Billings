@@ -21,7 +21,10 @@ import {
   X,
   Image as ImageIcon,
   ExternalLink,
-  Minus
+  Minus,
+  DollarSign,
+  Building,
+  AlertCircle
 } from 'lucide-react';
 
 export const BillingsPage = () => {
@@ -47,13 +50,21 @@ export const BillingsPage = () => {
   // Create Form State: selectedActions is { [actionId]: quantity }
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [bpjsClaim, setBpjsClaim] = useState(0);
+  const [insuranceProvider, setInsuranceProvider] = useState('BPJS Kesehatan');
   const [selectedActions, setSelectedActions] = useState({});
   const [modalTarifSearch, setModalTarifSearch] = useState('');
+
+  // Payment Breakdown State
+  const [payMethod, setPayMethod] = useState('CASH');
+  const [splitCashAmt, setSplitCashAmt] = useState(0);
+  const [splitTransferAmt, setSplitTransferAmt] = useState(0);
 
   // Payment Idempotency & Verification State
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' });
+
+  const isNoInsurance = insuranceProvider.includes('Tanpa Asuransi');
 
   const fetchBillings = useCallback(async () => {
     try {
@@ -83,6 +94,7 @@ export const BillingsPage = () => {
     setIsCreateOpen(true);
     setSelectedPatientId('');
     setBpjsClaim(0);
+    setInsuranceProvider('BPJS Kesehatan');
     setSelectedActions({});
     setModalTarifSearch('');
 
@@ -95,6 +107,13 @@ export const BillingsPage = () => {
       setTarifsList(tRes.data || []);
     } catch (err) {
       setToast({ message: 'Gagal memuat data master pasien/tarif', type: 'error' });
+    }
+  };
+
+  const handleInsuranceProviderChange = (providerVal) => {
+    setInsuranceProvider(providerVal);
+    if (providerVal.includes('Tanpa Asuransi')) {
+      setBpjsClaim(0);
     }
   };
 
@@ -135,10 +154,14 @@ export const BillingsPage = () => {
       return;
     }
 
+    const actualClaim = isNoInsurance ? 0 : (Number(bpjsClaim) || 0);
+
     try {
       await billingApi.create({
         patient_user_id: Number(selectedPatientId),
-        bpjs_claim: Number(bpjsClaim) || 0,
+        insurance_provider: insuranceProvider,
+        insurance_claim: actualClaim,
+        bpjs_claim: actualClaim,
         items: items,
         action_ids: items.map(i => i.action_id),
       });
@@ -153,22 +176,65 @@ export const BillingsPage = () => {
 
   const openPayModal = (billing) => {
     setPayBilling(billing);
+    setPayMethod('CASH');
+    const netAmt = Number(billing.patient_amount || 0);
+    const half = Math.floor(netAmt / 2);
+    setSplitCashAmt(half);
+    setSplitTransferAmt(netAmt - half);
     setIdempotencyKey(`PAY-BILL-${billing.ID || billing.id}-${Date.now()}`);
   };
 
   const openVerifyModal = (billing) => {
     setVerifyBilling(billing);
+    setPayMethod('TRANSFER');
+    const netAmt = Number(billing.patient_amount || 0);
+    const half = Math.floor(netAmt / 2);
+    setSplitCashAmt(half);
+    setSplitTransferAmt(netAmt - half);
     setIdempotencyKey(`VERIFY-BILL-${billing.ID || billing.id}-${Date.now()}`);
+  };
+
+  const handleSplitCashChange = (val, targetNetAmt) => {
+    const cash = Number(val) || 0;
+    setSplitCashAmt(val);
+    if (targetNetAmt != null) {
+      setSplitTransferAmt(Math.max(0, targetNetAmt - cash));
+    }
+  };
+
+  const handleSplitTransferChange = (val, targetNetAmt) => {
+    const transfer = Number(val) || 0;
+    setSplitTransferAmt(val);
+    if (targetNetAmt != null) {
+      setSplitCashAmt(Math.max(0, targetNetAmt - transfer));
+    }
   };
 
   const handleApproveVerification = async () => {
     if (!verifyBilling) return;
+    const netAmt = Number(verifyBilling.patient_amount || 0);
+
+    if (payMethod === 'SPLIT') {
+      const sum = Number(splitCashAmt || 0) + Number(splitTransferAmt || 0);
+      if (sum !== netAmt) {
+        setToast({ 
+          message: `Total pembayaran split (Rp ${sum.toLocaleString('id-ID')}) harus SAMA PERSIS dengan total tagihan bersih (Rp ${netAmt.toLocaleString('id-ID')})`, 
+          type: 'error' 
+        });
+        return;
+      }
+    }
+
     setIsProcessing(true);
 
     try {
-      const res = await billingApi.pay(verifyBilling.ID || verifyBilling.id, idempotencyKey);
+      const res = await billingApi.pay(verifyBilling.ID || verifyBilling.id, idempotencyKey, {
+        payment_method: payMethod,
+        cash_amount: payMethod === 'SPLIT' ? Number(splitCashAmt) : (payMethod === 'CASH' ? netAmt : 0),
+        transfer_amount: payMethod === 'SPLIT' ? Number(splitTransferAmt) : (payMethod === 'CASH' ? 0 : netAmt),
+      });
+
       setToast({ message: res.message || 'Pembayaran berhasil disetujui & dilunaskan!', type: 'success' });
-      
       const updatedData = res.data || verifyBilling;
       setVerifyBilling(null);
       setReceiptBilling(updatedData);
@@ -198,12 +264,29 @@ export const BillingsPage = () => {
 
   const handleProcessDirectPayment = async () => {
     if (!payBilling) return;
+    const netAmt = Number(payBilling.patient_amount || 0);
+
+    if (payMethod === 'SPLIT') {
+      const sum = Number(splitCashAmt || 0) + Number(splitTransferAmt || 0);
+      if (sum !== netAmt) {
+        setToast({ 
+          message: `Total pembayaran split (Rp ${sum.toLocaleString('id-ID')}) harus SAMA PERSIS dengan total tagihan bersih (Rp ${netAmt.toLocaleString('id-ID')})`, 
+          type: 'error' 
+        });
+        return;
+      }
+    }
+
     setIsProcessing(true);
 
     try {
-      const res = await billingApi.pay(payBilling.ID || payBilling.id, idempotencyKey);
+      const res = await billingApi.pay(payBilling.ID || payBilling.id, idempotencyKey, {
+        payment_method: payMethod,
+        cash_amount: payMethod === 'SPLIT' ? Number(splitCashAmt) : (payMethod === 'CASH' ? netAmt : 0),
+        transfer_amount: payMethod === 'SPLIT' ? Number(splitTransferAmt) : (payMethod === 'CASH' ? 0 : netAmt),
+      });
+
       setToast({ message: res.message || 'Pembayaran kasir berhasil diproses!', type: 'success' });
-      
       const updatedData = res.data || payBilling;
       setPayBilling(null);
       setReceiptBilling(updatedData);
@@ -244,11 +327,16 @@ export const BillingsPage = () => {
     return sum + (found ? Number(found.amount) * Number(qty) : 0);
   }, 0);
 
-  const netPatientAmountPreview = Math.max(0, selectedTarifsSum - Number(bpjsClaim || 0));
+  const actualClaim = isNoInsurance ? 0 : Number(bpjsClaim || 0);
+  const netPatientAmountPreview = Math.max(0, selectedTarifsSum - actualClaim);
 
   const filteredModalTarifs = tarifsList.filter((t) =>
     (t.action_name || '').toLowerCase().includes(modalTarifSearch.toLowerCase())
   );
+
+  const currentPayNetAmt = payBilling ? Number(payBilling.patient_amount || 0) : 0;
+  const currentSplitSum = Number(splitCashAmt || 0) + Number(splitTransferAmt || 0);
+  const isSplitValid = payMethod !== 'SPLIT' || currentSplitSum === currentPayNetAmt;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -302,10 +390,10 @@ export const BillingsPage = () => {
                 <th>ID Tagihan</th>
                 <th>Nama Pasien</th>
                 <th>Total Tindakan</th>
-                <th>Klaim BPJS</th>
+                <th>Asuransi / BPJS</th>
                 <th>Bersih Pasien</th>
+                <th>Metode</th>
                 <th>Status</th>
-                <th>Tanggal</th>
                 <th className="text-right">Aksi Kasir</th>
               </tr>
             </thead>
@@ -324,13 +412,20 @@ export const BillingsPage = () => {
                     <td className="font-mono text-xs text-gray-400">#BILL-{b.ID || b.id}</td>
                     <td className="font-semibold text-white">{b.patient_name}</td>
                     <td className="number-font">{formatIDR(b.total_amount)}</td>
-                    <td className="number-font text-cyan-400">{formatIDR(b.bpjs_amount)}</td>
+                    <td className="number-font text-cyan-400">
+                      <div>{formatIDR(b.insurance_claim || b.bpjs_amount)}</div>
+                      <span className="text-[10px] text-gray-400 block font-sans">
+                        {b.insurance_provider || 'BPJS Kesehatan'}
+                      </span>
+                    </td>
                     <td className="number-font font-bold text-emerald-400">{formatIDR(b.patient_amount)}</td>
                     <td>
-                      <Badge variant={b.status}>{b.status}</Badge>
+                      <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">
+                        {b.payment_method || 'CASH'}
+                      </span>
                     </td>
-                    <td className="text-xs text-gray-400 font-mono">
-                      {b.created_at ? new Date(b.created_at).toLocaleDateString('id-ID') : '-'}
+                    <td>
+                      <Badge variant={b.status}>{b.status}</Badge>
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -346,7 +441,7 @@ export const BillingsPage = () => {
                           <button
                             onClick={() => openPayModal(b)}
                             className="btn btn-emerald btn-sm"
-                            title="Proses Pembayaran Tunai / EDC Kasir"
+                            title="Proses Pembayaran Tunai / EDC / Split Kasir"
                           >
                             <CreditCard size={14} /> Bayar Kasir
                           </button>
@@ -405,17 +500,43 @@ export const BillingsPage = () => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1 flex items-center gap-1">
-              <ShieldCheck size={14} className="text-cyan-400" /> Potongan / Subsidi Klaim BPJS (IDR)
-            </label>
-            <input
-              type="number"
-              value={bpjsClaim}
-              onChange={(e) => setBpjsClaim(e.target.value)}
-              placeholder="0"
-              className="glass-input"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase text-gray-300 mb-1 flex items-center gap-1">
+                <Building size={14} className="text-cyan-400" /> Penyedia Asuransi (Swasta / BPJS)
+              </label>
+              <select
+                value={insuranceProvider}
+                onChange={(e) => handleInsuranceProviderChange(e.target.value)}
+                className="glass-input text-xs"
+              >
+                <option value="BPJS Kesehatan">BPJS Kesehatan</option>
+                <option value="Prudential">Prudential Insurance</option>
+                <option value="Manulife">Manulife Indonesia</option>
+                <option value="Allianz">Allianz Life</option>
+                <option value="Sinarmas MSIG">Sinarmas MSIG</option>
+                <option value="AXA Mandiri">AXA Mandiri</option>
+                <option value="Cigna Insurance">Cigna Insurance</option>
+                <option value="Sequis Life">Sequis Life</option>
+                <option value="Mandiri (Tanpa Asuransi)">Tanpa Asuransi (Mandiri)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase text-gray-300 mb-1 flex items-center gap-1">
+                <ShieldCheck size={14} className="text-emerald-400" /> Nominal Klaim Asuransi (IDR)
+              </label>
+              <input
+                type="number"
+                value={isNoInsurance ? 0 : bpjsClaim}
+                disabled={isNoInsurance}
+                onChange={(e) => setBpjsClaim(e.target.value)}
+                placeholder="0"
+                className={`glass-input text-xs font-mono ${
+                  isNoInsurance ? 'opacity-40 cursor-not-allowed bg-black/40 text-gray-500' : ''
+                }`}
+              />
+            </div>
           </div>
 
           <div>
@@ -442,7 +563,7 @@ export const BillingsPage = () => {
               />
             </div>
 
-            <div className="max-h-56 overflow-y-auto space-y-2 p-2 rounded-xl bg-white/5 border border-white/10">
+            <div className="max-h-48 overflow-y-auto space-y-2 p-2 rounded-xl bg-white/5 border border-white/10">
               {filteredModalTarifs.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">
                   {tarifsList.length === 0 ? 'Belum ada master tarif layanan.' : 'Tidak ada tindakan medis yang cocok.'}
@@ -476,7 +597,7 @@ export const BillingsPage = () => {
                         </div>
                       </label>
 
-                      {/* Interactive Quantity Spinner (Only when checked) */}
+                      {/* Interactive Quantity Spinner */}
                       {isChecked && (
                         <div className="flex items-center gap-2 shrink-0">
                           <div className="flex items-center border border-indigo-500/40 rounded-lg overflow-hidden bg-black/40">
@@ -524,10 +645,12 @@ export const BillingsPage = () => {
               <span>Total Tindakan:</span>
               <span className="font-mono font-semibold text-white">{formatIDR(selectedTarifsSum)}</span>
             </div>
-            <div className="flex justify-between text-cyan-400">
-              <span>Subsidi BPJS:</span>
-              <span className="font-mono">- {formatIDR(bpjsClaim)}</span>
-            </div>
+            {!isNoInsurance && (
+              <div className="flex justify-between text-cyan-400">
+                <span>Klaim Subsidi {insuranceProvider}:</span>
+                <span className="font-mono">- {formatIDR(actualClaim)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-emerald-400 font-bold border-t border-white/10 pt-1 text-sm">
               <span>Bersih Tagihan Pasien:</span>
               <span className="font-mono text-base">{formatIDR(netPatientAmountPreview)}</span>
@@ -557,6 +680,10 @@ export const BillingsPage = () => {
             <div className="flex justify-between text-xs text-gray-300">
               <span>Pasien SIMRS:</span>
               <strong className="text-white">{verifyBilling?.patient_name}</strong>
+            </div>
+            <div className="flex justify-between text-xs text-gray-300">
+              <span>Penyedia Asuransi:</span>
+              <strong className="text-cyan-300">{verifyBilling?.insurance_provider || 'BPJS Kesehatan'}</strong>
             </div>
             <div className="flex justify-between text-xs text-gray-300">
               <span>Total Nominal yang Harus Ditransfer:</span>
@@ -637,8 +764,8 @@ export const BillingsPage = () => {
         </div>
       </Modal>
 
-      {/* Modal Pay Billing (Direct Cashier Payment) */}
-      <Modal isOpen={!!payBilling} onClose={() => setPayBilling(null)} title="Proses Pembayaran Kasir Direct (Idempotent)">
+      {/* Modal Pay Billing (Direct Cashier Payment & Split Payment) */}
+      <Modal isOpen={!!payBilling} onClose={() => setPayBilling(null)} title="Proses Pembayaran Kasir (Direct & Split Payment)" maxWidth="max-w-xl">
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-2">
             <div className="flex justify-between text-xs text-gray-300">
@@ -646,10 +773,116 @@ export const BillingsPage = () => {
               <strong className="text-white">{payBilling?.patient_name}</strong>
             </div>
             <div className="flex justify-between text-xs text-gray-300">
-              <span>Total Tagihan Bersih:</span>
+              <span>Penyedia Asuransi:</span>
+              <strong className="text-cyan-300">{payBilling?.insurance_provider || 'BPJS Kesehatan'}</strong>
+            </div>
+            <div className="flex justify-between text-xs text-gray-300">
+              <span>Total Tagihan Bersih Pasien:</span>
               <strong className="font-mono text-emerald-400 text-base">{formatIDR(payBilling?.patient_amount)}</strong>
             </div>
           </div>
+
+          {/* Payment Method Selector */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">
+              Pilih Metode Pembayaran Kasir
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setPayMethod('CASH')}
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+                  payMethod === 'CASH'
+                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <DollarSign size={16} /> Tunai Kasir
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayMethod('TRANSFER')}
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+                  payMethod === 'TRANSFER'
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <CreditCard size={16} /> Transfer Bank
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayMethod('EDC')}
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+                  payMethod === 'EDC'
+                    ? 'bg-cyan-600/20 border-cyan-500 text-cyan-300'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <CreditCard size={16} /> Kartu Debit/EDC
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPayMethod('SPLIT');
+                  const net = Number(payBilling?.patient_amount || 0);
+                  const half = Math.floor(net / 2);
+                  setSplitCashAmt(half);
+                  setSplitTransferAmt(net - half);
+                }}
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+                  payMethod === 'SPLIT'
+                    ? 'bg-amber-600/20 border-amber-500 text-amber-300'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Plus size={16} /> Split Payment
+              </button>
+            </div>
+          </div>
+
+          {/* Split Payment Breakdown Inputs */}
+          {payMethod === 'SPLIT' && (
+            <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-3">
+              <div className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center justify-between">
+                <span>Rincian Pembayaran Kombinasi (Split)</span>
+                <span className="font-mono font-normal text-gray-300">
+                  Target: {formatIDR(currentPayNetAmt)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-300 mb-1">Porsi Tunai Kasir (IDR)</label>
+                  <input
+                    type="number"
+                    value={splitCashAmt}
+                    onChange={(e) => handleSplitCashChange(e.target.value, currentPayNetAmt)}
+                    className="glass-input font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-300 mb-1">Porsi Transfer / EDC (IDR)</label>
+                  <input
+                    type="number"
+                    value={splitTransferAmt}
+                    onChange={(e) => handleSplitTransferChange(e.target.value, currentPayNetAmt)}
+                    className="glass-input font-mono text-xs"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-xs font-mono pt-1.5 border-t border-white/10">
+                <span className="text-gray-400 flex items-center gap-1">
+                  Total Kombinasi:
+                  {!isSplitValid && (
+                    <AlertCircle size={14} className="text-rose-400" title="Jumlah split tidak sama persis" />
+                  )}
+                </span>
+                <span className={`font-bold ${isSplitValid ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {formatIDR(currentSplitSum)} {isSplitValid ? '✅ (Sesuai Tagihan)' : `⚠️ (Selisih: ${formatIDR(currentSplitSum - currentPayNetAmt)})`}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-1">
@@ -671,10 +904,10 @@ export const BillingsPage = () => {
             <button
               type="button"
               onClick={handleProcessDirectPayment}
-              disabled={isProcessing}
-              className="btn btn-emerald btn-sm"
+              disabled={isProcessing || !isSplitValid}
+              className={`btn btn-emerald btn-sm ${!isSplitValid ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isProcessing ? 'Memproses Cash/Debit...' : 'Konfirmasi Pembayaran Lunas'}
+              {isProcessing ? 'Memproses...' : 'Konfirmasi Pembayaran Lunas'}
             </button>
           </div>
         </div>
