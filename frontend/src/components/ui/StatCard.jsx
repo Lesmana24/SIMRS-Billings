@@ -39,17 +39,30 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, color = 'indigo' 
   const style = getColorStyles();
 
   return (
-    <div className="glass-card p-5 flex items-start justify-between">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{title}</p>
-        <h4 className="text-2xl font-extrabold text-white number-font tracking-tight">{value}</h4>
-        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    <div className="glass-card p-4 sm:p-5 flex flex-col justify-between space-y-3 min-w-0">
+      {/* Top Row: Title & Icon vertically centered */}
+      <div className="flex items-center justify-between gap-2 min-h-[32px]">
+        <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 leading-tight">
+          {title}
+        </p>
+        {Icon && (
+          <div className={`p-2 rounded-xl ${style.bg} ${style.text} border ${style.border} shrink-0 flex items-center justify-center`}>
+            <Icon size={18} />
+          </div>
+        )}
       </div>
-      {Icon && (
-        <div className={`p-3 rounded-xl ${style.bg} ${style.text} border ${style.border}`}>
-          <Icon size={22} />
-        </div>
-      )}
+
+      {/* Value & Subtitle Row: Full Width, No Truncate, High Detail */}
+      <div>
+        <h4 className="text-xl sm:text-2xl font-extrabold text-white number-font tracking-tight leading-tight break-words">
+          {value}
+        </h4>
+        {subtitle && (
+          <p className="text-[11px] sm:text-xs text-gray-400 mt-1 font-medium leading-normal">
+            {subtitle}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
