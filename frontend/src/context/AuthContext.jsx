@@ -51,14 +51,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('simrs_username');
   };
 
+  const normalizedRole = (role || '').toLowerCase();
+
   const value = {
     token,
     role,
     username,
+    user: { username, role: normalizedRole },
     isAuthenticated: !!token,
-    isAdmin: role === 'admin',
-    isStaff: role === 'staff' || role === 'admin',
-    isPasien: role === 'pasien',
+    isAdmin: normalizedRole === 'admin',
+    isStaff: normalizedRole === 'staff' || normalizedRole === 'admin',
+    isPasien: normalizedRole === 'pasien',
     login,
     register,
     logout,

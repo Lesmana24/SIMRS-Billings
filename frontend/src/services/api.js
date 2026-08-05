@@ -147,6 +147,7 @@ export const ledgerApi = {
     return request(`/ledgers${query ? `?${query}` : ''}`);
   },
   getById: (id) => request(`/ledgers/${id}`),
+  delete: (id) => request(`/ledgers/${id}`, { method: 'DELETE' }),
 };
 
 // ----------------------------------------------------

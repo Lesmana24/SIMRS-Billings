@@ -77,6 +77,13 @@ func SetupRouter() *gin.Engine {
 				pasienOnly.GET("/pasien/my-billings/:id", handlers.GetMyBillingByID)
 				pasienOnly.POST("/pasien/my-billings/:id/submit-proof", handlers.SubmitProof)
 			}
+
+			// Admin Only Routes (Mutasi Kas Delete)
+			adminOnly := authenticated.Group("")
+			adminOnly.Use(middleware.RequireRole("admin"))
+			{
+				adminOnly.DELETE("/ledgers/:id", handlers.DeletePaymentLedger)
+			}
 		}
 	}
 

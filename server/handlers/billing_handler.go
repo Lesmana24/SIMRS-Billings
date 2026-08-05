@@ -237,3 +237,13 @@ func GetMyBillingByID(c *gin.Context) {
 		"data": billing,
 	})
 }
+
+func DeletePaymentLedger(c *gin.Context) {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err := services.DeletePaymentLedger(uint(id)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Catatan mutasi kas berhasil dihapus oleh Admin"})
+}

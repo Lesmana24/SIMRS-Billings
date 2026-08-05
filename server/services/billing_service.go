@@ -310,3 +310,11 @@ func GetPaymentLedgerByID(id uint) (*models.PaymentLedger, error) {
 	}
 	return &ledger, nil
 }
+
+func DeletePaymentLedger(id uint) error {
+	var ledger models.PaymentLedger
+	if err := config.DB.First(&ledger, id).Error; err != nil {
+		return errors.New("Jurnal mutasi kas tidak ditemukan")
+	}
+	return config.DB.Delete(&ledger).Error
+}
