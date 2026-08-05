@@ -1,0 +1,20 @@
+# Environment files
+.env
+*.env
+server/.env
+frontend/.env
+
+# Dependencies & Build Outputs
+node_modules/
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
