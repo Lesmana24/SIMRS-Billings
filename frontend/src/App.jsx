@@ -60,16 +60,16 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex flex-col font-sans text-gray-100 antialiased">
+    <div className="h-screen w-screen bg-[#0b0f19] flex flex-col font-sans text-gray-100 antialiased overflow-hidden">
       <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden">
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto min-w-0">
+        <main className="flex-1 h-full overflow-y-auto p-4 md:p-6 min-w-0 [scrollbar-gutter:stable]">
           {renderContent()}
         </main>
       </div>

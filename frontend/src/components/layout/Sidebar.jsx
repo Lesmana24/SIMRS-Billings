@@ -45,10 +45,10 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
       <aside className={`
         fixed md:static top-[57px] md:top-0 bottom-0 left-0 z-40
-        w-64 bg-gray-950/95 border-r border-white/10 p-4
+        w-64 h-full bg-gray-950/95 border-r border-white/10 p-4
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        flex flex-col justify-between shrink-0
+        flex flex-col justify-between shrink-0 overflow-y-auto
       `}>
         <div>
           {/* Header Mobile */}
@@ -100,7 +100,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-white/10 text-center">
+        <div className="pt-4 border-t border-white/10 text-center shrink-0 mt-6">
           <p className="text-[11px] text-gray-500">SIMRS Billing System v1.0</p>
           <p className="text-[10px] text-gray-600 font-mono mt-0.5">Decimal Math • Idempotent Payments</p>
         </div>
