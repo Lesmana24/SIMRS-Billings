@@ -287,24 +287,96 @@ body {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Print Styles for Receipts */
+/* Bulletproof Full-Content Print Styles */
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
   }
-  #printable-receipt, #printable-receipt * {
-    visibility: visible;
-  }
-  #printable-receipt {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  
+  html, body {
     background: white !important;
     color: black !important;
-    padding: 20px;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
   }
+
+  /* Unset overflow & height on all modal containers during print */
+  div, section, main, article {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-receipt, #printable-receipt * {
+    visibility: visible !important;
+  }
+
+  #printable-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    color: #000000 !important;
+    padding: 10px !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
   .no-print {
     display: none !important;
+  }
+
+  /* Force 100% Black Text & Contrast on Paper */
+  #printable-receipt h1,
+  #printable-receipt h2,
+  #printable-receipt h3,
+  #printable-receipt h4,
+  #printable-receipt p,
+  #printable-receipt span,
+  #printable-receipt td,
+  #printable-receipt th,
+  #printable-receipt div,
+  #printable-receipt strong {
+    color: #000000 !important;
+  }
+
+  #printable-receipt .text-gray-400,
+  #printable-receipt .text-gray-500,
+  #printable-receipt .text-slate-500 {
+    color: #334155 !important;
+  }
+
+  #printable-receipt .bg-white\/5,
+  #printable-receipt .bg-indigo-950\/40 {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  #printable-receipt table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  #printable-receipt th {
+    background-color: #f1f5f9 !important;
+    color: #000000 !important;
+    border: 1px solid #94a3b8 !important;
+    padding: 6px 10px !important;
+  }
+
+  #printable-receipt td {
+    color: #000000 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 10px !important;
   }
 }
