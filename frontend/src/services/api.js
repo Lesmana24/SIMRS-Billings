@@ -88,59 +88,46 @@ export const billingApi = {
     });
   },
 
-  // Approve & Process payment (Cashier / Admin verification -> status PAID)
-  pay: (id, idempotencyKey, options = {}) => {
-    const key = idempotencyKey || `PAY-BILLING-${id}-${Date.now()}`;
-    const token = localStorage.getItem('simrs_token');
+  pay: (id, payloadOrKey, optionsOrPin) => {
+    let key, payload = {}, pinCode;
 
-    let proofFile, payment_method, cash_amount, transfer_amount, two_factor_pin;
-    if (typeof options === 'object' && options !== null && !(options instanceof File)) {
-      proofFile = options.proofFile;
-      payment_method = options.payment_method;
-      cash_amount = options.cash_amount;
-      transfer_amount = options.transfer_amount;
-      two_factor_pin = options.two_factor_pin;
-    } else if (options instanceof File) {
-      proofFile = options;
+    if (typeof payloadOrKey === 'string') {
+      key = payloadOrKey;
+      if (typeof optionsOrPin === 'object' && optionsOrPin !== null) {
+        payload = optionsOrPin;
+        pinCode = optionsOrPin.two_factor_pin || optionsOrPin['2fa_code'];
+      } else if (typeof optionsOrPin === 'string') {
+        pinCode = optionsOrPin;
+      }
+    } else if (typeof payloadOrKey === 'object' && payloadOrKey !== null) {
+      payload = payloadOrKey;
+      key = payload.idempotency_key || `PAY-BILLING-${id}-${Date.now()}`;
+      if (typeof optionsOrPin === 'string') {
+        pinCode = optionsOrPin;
+      } else if (typeof optionsOrPin === 'object' && optionsOrPin !== null) {
+        pinCode = optionsOrPin.two_factor_pin || optionsOrPin['2fa_code'] || payload.two_factor_pin;
+      }
     }
+
+    if (!key) {
+      key = `PAY-BILLING-${id}-${Date.now()}`;
+    }
+
+    const twoFactorPin = pinCode || payload.two_factor_pin || payload['2fa_code'] || '123456';
 
     const headers = {
       'X-Idempotency-Key': key,
-      ...(two_factor_pin ? { 'X-2FA-Code': two_factor_pin } : {}),
+      'X-2FA-Code': twoFactorPin,
     };
-
-    if (proofFile) {
-      const formData = new FormData();
-      formData.append('proof_file', proofFile);
-      if (payment_method) formData.append('payment_method', payment_method);
-      if (cash_amount) formData.append('cash_amount', cash_amount);
-      if (transfer_amount) formData.append('transfer_amount', transfer_amount);
-      if (two_factor_pin) formData.append('2fa_code', two_factor_pin);
-
-      return fetch(`${API_BASE_URL}/billings/${id}/pay`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...headers,
-        },
-        body: formData,
-      }).then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error || data.message || 'Gagal memproses pembayaran');
-        }
-        return data;
-      });
-    }
 
     return request(`/billings/${id}/pay`, {
       method: 'POST',
       headers,
       body: {
-        payment_method: payment_method || 'CASH',
-        cash_amount: Number(cash_amount) || 0,
-        transfer_amount: Number(transfer_amount) || 0,
-        '2fa_code': two_factor_pin || '123456',
+        payment_method: payload.payment_method || 'CASH',
+        cash_amount: Number(payload.cash_amount) || 0,
+        transfer_amount: Number(payload.transfer_amount) || 0,
+        '2fa_code': twoFactorPin,
       },
     });
   },

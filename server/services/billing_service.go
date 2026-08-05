@@ -17,7 +17,7 @@ type ActionItemInput struct {
 }
 
 type CreateBillingRequest struct {
-	PatientUserID     uint              `json:"patient_user_id" binding:"required"`
+	PatientUserID     uint              `json:"patient_user_id"`
 	PatientName       string            `json:"patient_name"`
 	BPJSClaim         decimal.Decimal   `json:"bpjs_claim"`
 	InsuranceProvider string            `json:"insurance_provider"`
@@ -45,12 +45,20 @@ type ProcessPaymentRequest struct {
 
 func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 	var patient models.User
-	if err := config.DB.First(&patient, req.PatientUserID).Error; err != nil {
-		return nil, fmt.Errorf("Pasien dengan ID %d tidak ditemukan", req.PatientUserID)
+	if req.PatientUserID > 0 {
+		config.DB.First(&patient, req.PatientUserID)
+	} else if req.PatientName != "" {
+		config.DB.Where("username ILIKE ?", req.PatientName).First(&patient)
 	}
 
-	if req.PatientName == "" {
+	if req.PatientName == "" && patient.ID > 0 {
 		req.PatientName = patient.Username
+	}
+	if req.PatientName == "" {
+		return nil, errors.New("Nama pasien wajib dipilih atau diisi")
+	}
+	if patient.ID > 0 {
+		req.PatientUserID = patient.ID
 	}
 
 	// Determine Insurance Provider and Claim Amount

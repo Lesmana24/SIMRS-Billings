@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { billingApi, tarifApi } from '../services/api';
+import { billingApi, tarifApi, userApi } from '../services/api';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
@@ -11,6 +11,7 @@ import { Search, Plus, Printer, CheckCircle, Filter, Trash2 } from 'lucide-react
 export const BillingsPage = () => {
   const [billings, setBillings] = useState([]);
   const [tarifs, setTarifs] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -27,6 +28,7 @@ export const BillingsPage = () => {
   const [twoFactorBilling, setTwoFactorBilling] = useState(null); // 2FA Verification
 
   // Create Form State
+  const [selectedPatientUserId, setSelectedPatientUserId] = useState('');
   const [patientName, setPatientName] = useState('');
   const [insuranceType, setInsuranceType] = useState('BPJS Kesehatan');
   const [customInsuranceName, setCustomInsuranceName] = useState('');
@@ -61,18 +63,24 @@ export const BillingsPage = () => {
     }
   }, [page, search, statusFilter]);
 
-  const fetchTarifs = async () => {
+  const fetchTarifsAndPatients = async () => {
     try {
-      const res = await tarifApi.getAll({ limit: 100 });
-      setTarifs(res.data || []);
+      const [tarifRes, userRes] = await Promise.all([
+        tarifApi.getAll({ limit: 100 }),
+        userApi.getAll({ limit: 100 }),
+      ]);
+      setTarifs(tarifRes.data || []);
+      const allUsers = userRes.data || [];
+      const patientUsers = allUsers.filter((u) => (u.role || '').toLowerCase() === 'pasien');
+      setPatients(patientUsers);
     } catch (err) {
-      console.error('Gagal memuat tarif:', err);
+      console.error('Gagal memuat master data:', err);
     }
   };
 
   useEffect(() => {
     fetchBillings();
-    fetchTarifs();
+    fetchTarifsAndPatients();
   }, [fetchBillings]);
 
   // Derived calculation for Create Modal - support both action_name/amount and nama/harga
@@ -97,7 +105,7 @@ export const BillingsPage = () => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!patientName.trim()) {
-      setToast({ message: 'Nama pasien wajib diisi', type: 'error' });
+      setToast({ message: 'Nama pasien wajib diisi atau dipilih', type: 'error' });
       return;
     }
     if (selectedTarifIds.length === 0) {
@@ -107,11 +115,18 @@ export const BillingsPage = () => {
 
     try {
       const finalInsuranceType = insuranceType === 'Lainnya' ? customInsuranceName : insuranceType;
+      const patientUserId = selectedPatientUserId ? Number(selectedPatientUserId) : 0;
+
       await billingApi.create({
+        patient_user_id: patientUserId,
         patient_name: patientName,
         insurance_type: finalInsuranceType,
+        insurance_provider: finalInsuranceType,
+        insurance_claim: Number(effectiveClaimAmount),
         insurance_claim_amount: Number(effectiveClaimAmount),
+        bpjs_claim: Number(effectiveClaimAmount),
         tarif_ids: selectedTarifIds,
+        action_ids: selectedTarifIds,
       });
 
       setToast({ message: 'Tagihan medis berhasil diterbitkan', type: 'success' });
@@ -124,6 +139,7 @@ export const BillingsPage = () => {
   };
 
   const resetCreateForm = () => {
+    setSelectedPatientUserId('');
     setPatientName('');
     setInsuranceType('BPJS Kesehatan');
     setCustomInsuranceName('');
@@ -229,7 +245,7 @@ export const BillingsPage = () => {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Cari pasien (contoh: Lesmana, BILL-102)..."
+            placeholder="Cari pasien (contoh: Budi, BILL-102)..."
             className="glass-input glass-input-icon"
           />
         </div>
@@ -284,10 +300,10 @@ export const BillingsPage = () => {
                       </td>
                       <td>
                         <div className="text-xs">
-                          <span className="font-medium text-slate-200">{b.insurance_type || 'Mandiri'}</span>
-                          {b.insurance_claim_amount > 0 && (
+                          <span className="font-medium text-slate-200">{b.insurance_type || b.insurance_provider || 'Mandiri'}</span>
+                          {(b.insurance_claim_amount > 0 || b.insurance_claim > 0) && (
                             <div className="text-[10px] text-emerald-400 font-mono">
-                              Klaim: Rp {(b.insurance_claim_amount || 0).toLocaleString('id-ID')}
+                              Klaim: Rp {(b.insurance_claim_amount || b.insurance_claim || 0).toLocaleString('id-ID')}
                             </div>
                           )}
                         </div>
@@ -355,13 +371,38 @@ export const BillingsPage = () => {
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">
-              Nama Pasien
+              Pilih Akun Pasien Terdaftar (Relasi Data)
+            </label>
+            <select
+              value={selectedPatientUserId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedPatientUserId(id);
+                const found = patients.find((p) => String(p.ID || p.id) === String(id));
+                if (found) {
+                  setPatientName(found.username);
+                }
+              }}
+              className="glass-input text-xs mb-2"
+            >
+              <option value="">-- (Opsional) Pilih Akun Pasien Terdaftar --</option>
+              {patients
+                .filter((p) => (p.role || '').toLowerCase() === 'pasien')
+                .map((p) => (
+                  <option key={p.ID || p.id} value={p.ID || p.id}>
+                    {p.username} (Pasien SIMRS • ID #{p.ID || p.id})
+                  </option>
+                ))}
+            </select>
+
+            <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">
+              Nama Pasien SIMRS
             </label>
             <input
               type="text"
               value={patientName}
               onChange={(e) => setPatientName(e.target.value)}
-              placeholder="Contoh: Budi Santoso / Ny. Ratna"
+              placeholder="Contoh: Budi Santoso"
               className="glass-input text-xs"
               required
             />
