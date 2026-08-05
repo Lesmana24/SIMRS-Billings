@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from './Modal';
 import { Badge } from './Badge';
-import { Printer, CheckCircle, Hospital, Calendar, User, FileText } from 'lucide-react';
+import { Printer, CheckCircle, Hospital, Calendar, User, FileText, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 export const ReceiptModal = ({ isOpen, onClose, billing }) => {
   if (!billing) return null;
@@ -116,6 +116,32 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
             <span className="number-font text-emerald-400 text-lg">{formatIDR(billing.patient_amount)}</span>
           </div>
         </div>
+
+        {/* Bukti Transfer ImageKit Cloud (Jika Ada) */}
+        {billing.proof_of_payment && (
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <ImageIcon size={14} className="text-indigo-400" /> Bukti Pembayaran (ImageKit Cloud)
+              </h4>
+              <a 
+                href={billing.proof_of_payment} 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-xs text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
+              >
+                Buka Foto Penuh <ExternalLink size={12} />
+              </a>
+            </div>
+            <div className="rounded-lg overflow-hidden border border-white/10 bg-black/40 p-2 max-h-48 flex items-center justify-center">
+              <img 
+                src={billing.proof_of_payment} 
+                alt="Bukti Transfer ImageKit" 
+                className="max-h-44 object-contain rounded"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Footer Cetak & Idempotensi Notice */}
         <div className="flex items-center justify-between pt-2 no-print">

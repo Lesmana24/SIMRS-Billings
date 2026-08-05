@@ -35,6 +35,9 @@ func SetupRouter() *gin.Engine {
 		authenticated := api.Group("")
 		authenticated.Use(middleware.AuthMiddleware())
 		{
+			// Submit proof route (Admin, Staff, Pasien)
+			authenticated.POST("/billings/:id/submit-proof", middleware.RequireRole("admin", "staff", "pasien"), handlers.SubmitProof)
+
 			// Staff & Admin Routes
 			staffOnly := authenticated.Group("")
 			staffOnly.Use(middleware.RequireRole("admin", "staff"))
@@ -53,6 +56,7 @@ func SetupRouter() *gin.Engine {
 				staffOnly.PUT("/billings/:id", handlers.UpdateBilling)
 				staffOnly.DELETE("/billings/:id", handlers.DeleteBilling)
 				staffOnly.POST("/billings/:id/pay", handlers.PayBilling)
+				staffOnly.POST("/billings/:id/reject", handlers.RejectBilling)
 
 				// Users
 				staffOnly.GET("/users", handlers.GetUsers)
@@ -71,6 +75,7 @@ func SetupRouter() *gin.Engine {
 			{
 				pasienOnly.GET("/pasien/my-billings", handlers.GetMyBillings)
 				pasienOnly.GET("/pasien/my-billings/:id", handlers.GetMyBillingByID)
+				pasienOnly.POST("/pasien/my-billings/:id/submit-proof", handlers.SubmitProof)
 			}
 		}
 	}

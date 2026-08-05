@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"server/services"
 	"server/utils"
@@ -31,6 +32,56 @@ func CreateBilling(c *gin.Context) {
 	})
 }
 
+// SubmitProof allows patient to upload payment proof (Status becomes WAITING_VERIFICATION)
+func SubmitProof(c *gin.Context) {
+	billingID, _ := strconv.ParseUint(c.Param("id"), 10, 32)
+	userIDVal, exists := c.Get("user_id")
+	var userID uint
+	if exists {
+		userID = userIDVal.(uint)
+	}
+
+	billing, err := services.GetBillingByID(uint(billingID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tagihan tidak ditemukan"})
+		return
+	}
+
+	userRole := c.GetString("role")
+	if userRole == "pasien" && billing.PatientUserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Akses Ditolak: Tagihan bukan milik Anda"})
+		return
+	}
+
+	file, fileHeader, err := c.Request.FormFile("proof_file")
+	if err != nil || file == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Harap unggah file foto bukti transfer"})
+		return
+	}
+	defer file.Close()
+
+	fileName := fmt.Sprintf("bukti-BILL-%d-%s", billingID, fileHeader.Filename)
+	uploadedURL, ikErr := services.UploadToImageKit(file, fileName)
+	if ikErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Gagal unggah ke ImageKit: %v", ikErr),
+		})
+		return
+	}
+
+	updatedBilling, err := services.SubmitPaymentProof(uint(billingID), uploadedURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Bukti pembayaran berhasil diunggah! Menunggu verifikasi kasir",
+		"data":    updatedBilling,
+	})
+}
+
+// PayBilling allows staff/admin to approve payment (Status becomes PAID & Ledger DEBIT is created)
 func PayBilling(c *gin.Context) {
 	billingID, _ := strconv.ParseUint(c.Param("id"), 10, 32)
 	idempotencyKey := c.GetHeader("X-Idempotency-Key")
@@ -42,7 +93,25 @@ func PayBilling(c *gin.Context) {
 		return
 	}
 
-	billing, err := services.ProcessPayment(uint(billingID), idempotencyKey)
+	var proofURL string
+
+	file, fileHeader, err := c.Request.FormFile("proof_file")
+	if err == nil && file != nil {
+		defer file.Close()
+		fileName := fmt.Sprintf("bukti-BILL-%d-%s", billingID, fileHeader.Filename)
+		uploadedURL, ikErr := services.UploadToImageKit(file, fileName)
+		if ikErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("Gagal unggah ke ImageKit: %v", ikErr),
+			})
+			return
+		}
+		proofURL = uploadedURL
+	} else {
+		proofURL = c.PostForm("proof_of_payment")
+	}
+
+	billing, err := services.ProcessPayment(uint(billingID), idempotencyKey, proofURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -51,7 +120,22 @@ func PayBilling(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Pembayaran Berhasil Diproses",
+		"message": "Pembayaran Berhasil Diproses & Dikonfirmasi",
+		"data":    billing,
+	})
+}
+
+// RejectBilling allows staff/admin to reject invalid payment proof (Status becomes REJECTED)
+func RejectBilling(c *gin.Context) {
+	billingID, _ := strconv.ParseUint(c.Param("id"), 10, 32)
+	billing, err := services.RejectPayment(uint(billingID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Bukti pembayaran ditolak",
 		"data":    billing,
 	})
 }

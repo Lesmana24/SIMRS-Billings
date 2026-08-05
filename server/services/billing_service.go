@@ -81,7 +81,7 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 	return &billing, nil
 }
 
-func ProcessPayment(billingID uint, idempotencyKey string) (*models.MedicalBilling, error) {
+func ProcessPayment(billingID uint, idempotencyKey string, proofURL string) (*models.MedicalBilling, error) {
 	var billing models.MedicalBilling
 	err := config.DB.Transaction(func(tx *gorm.DB) error {
 		var existingLog models.IdempotencyLog
@@ -94,9 +94,18 @@ func ProcessPayment(billingID uint, idempotencyKey string) (*models.MedicalBilli
 		if billing.Status == "PAID" {
 			return errors.New("Tagihan sudah Lunas sebelumnya")
 		}
-		if err := tx.Model(&billing).Update("status", "PAID").Error; err != nil {
+
+		updates := map[string]interface{}{
+			"status": "PAID",
+		}
+		if proofURL != "" {
+			updates["proof_of_payment"] = proofURL
+		}
+
+		if err := tx.Model(&billing).Updates(updates).Error; err != nil {
 			return err
 		}
+
 		ledger := models.PaymentLedger{
 			BillingID:   billingID,
 			EntryType:   "DEBIT",
@@ -106,6 +115,7 @@ func ProcessPayment(billingID uint, idempotencyKey string) (*models.MedicalBilli
 		if err := tx.Create(&ledger).Error; err != nil {
 			return err
 		}
+
 		logEntry := models.IdempotencyLog{
 			IdempotencyKey: idempotencyKey,
 			ResponseBody:   "PAID",
@@ -118,7 +128,50 @@ func ProcessPayment(billingID uint, idempotencyKey string) (*models.MedicalBilli
 	if err != nil {
 		return nil, err
 	}
-	return &billing, nil
+	return GetBillingByID(billingID)
+}
+
+func SubmitPaymentProof(billingID uint, proofURL string) (*models.MedicalBilling, error) {
+	var billing models.MedicalBilling
+	if err := config.DB.First(&billing, billingID).Error; err != nil {
+		return nil, errors.New("Tagihan tidak ditemukan")
+	}
+
+	if billing.Status == "PAID" {
+		return nil, errors.New("Tagihan sudah Lunas sebelumnya")
+	}
+
+	updates := map[string]interface{}{
+		"status":           "WAITING_VERIFICATION",
+		"proof_of_payment": proofURL,
+	}
+
+	if err := config.DB.Model(&billing).Updates(updates).Error; err != nil {
+		return nil, fmt.Errorf("Gagal memperbarui bukti pembayaran: %w", err)
+	}
+
+	return GetBillingByID(billingID)
+}
+
+func RejectPayment(billingID uint) (*models.MedicalBilling, error) {
+	var billing models.MedicalBilling
+	if err := config.DB.First(&billing, billingID).Error; err != nil {
+		return nil, errors.New("Tagihan tidak ditemukan")
+	}
+
+	if billing.Status == "PAID" {
+		return nil, errors.New("Tagihan sudah Lunas, tidak dapat ditolak")
+	}
+
+	updates := map[string]interface{}{
+		"status": "REJECTED",
+	}
+
+	if err := config.DB.Model(&billing).Updates(updates).Error; err != nil {
+		return nil, fmt.Errorf("Gagal menolak pembayaran: %w", err)
+	}
+
+	return GetBillingByID(billingID)
 }
 
 func GetAllBillings(search, statusFilter string, page, limit int) ([]models.MedicalBilling, utils.Pagination, error) {

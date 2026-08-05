@@ -66,8 +66,53 @@ export const billingApi = {
   create: (payload) => request('/billings', { method: 'POST', body: payload }),
   update: (id, payload) => request(`/billings/${id}`, { method: 'PUT', body: payload }),
   delete: (id) => request(`/billings/${id}`, { method: 'DELETE' }),
-  pay: (id, idempotencyKey) => {
+
+  // Submit payment proof file (Patient upload -> status WAITING_VERIFICATION)
+  submitProof: (id, proofFile) => {
+    const token = localStorage.getItem('simrs_token');
+    const formData = new FormData();
+    formData.append('proof_file', proofFile);
+
+    return fetch(`${API_BASE_URL}/billings/${id}/submit-proof`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Gagal mengunggah bukti pembayaran');
+      }
+      return data;
+    });
+  },
+
+  // Approve & Process payment (Cashier / Admin verification -> status PAID)
+  pay: (id, idempotencyKey, proofFile) => {
     const key = idempotencyKey || `PAY-BILLING-${id}-${Date.now()}`;
+    const token = localStorage.getItem('simrs_token');
+
+    if (proofFile) {
+      const formData = new FormData();
+      formData.append('proof_file', proofFile);
+
+      return fetch(`${API_BASE_URL}/billings/${id}/pay`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'X-Idempotency-Key': key,
+        },
+        body: formData,
+      }).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || data.message || 'Gagal memproses pembayaran');
+        }
+        return data;
+      });
+    }
+
     return request(`/billings/${id}/pay`, {
       method: 'POST',
       headers: {
@@ -75,6 +120,9 @@ export const billingApi = {
       },
     });
   },
+
+  // Reject payment proof (Cashier / Admin -> status REJECTED)
+  reject: (id) => request(`/billings/${id}/reject`, { method: 'POST' }),
 };
 
 // ----------------------------------------------------
