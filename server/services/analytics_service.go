@@ -47,15 +47,26 @@ type AnalyticsSummary struct {
 	TopActions        []TopMedicalAction `json:"top_actions"`
 	TotalPaidCount    int64              `json:"total_paid_count"`
 	TotalPendingCount int64              `json:"total_pending_count"`
+	SelectedMonth     int                `json:"selected_month"`
+	SelectedYear      int                `json:"selected_year"`
 }
 
-func GetAnalyticsSummary() (*AnalyticsSummary, error) {
+func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 	db := config.DB
 
 	now := time.Now()
+	if year <= 0 {
+		year = now.Year()
+	}
+	if month <= 0 || month > 12 {
+		month = int(now.Month())
+	}
+
+	startOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, now.Location())
+	endOfMonth := startOfMonth.AddDate(0, 1, 0)
+
 	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	sevenDaysAgo := startOfToday.AddDate(0, 0, -6)
-	thirtyDaysAgo := startOfToday.AddDate(0, 0, -29)
 
 	var dailyRev, weeklyRev, monthlyRev, totalRev decimal.Decimal
 
@@ -69,9 +80,9 @@ func GetAnalyticsSummary() (*AnalyticsSummary, error) {
 		Where("status = ? AND created_at >= ?", "PAID", sevenDaysAgo).
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&weeklyRev)
 
-	// 3. Monthly Revenue (Past 30 Days)
+	// 3. Monthly Revenue (Selected Month & Year)
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ?", "PAID", thirtyDaysAgo).
+		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&monthlyRev)
 
 	// 4. All Time Total Revenue
@@ -79,18 +90,18 @@ func GetAnalyticsSummary() (*AnalyticsSummary, error) {
 		Where("status = ?", "PAID").
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&totalRev)
 
-	// 5. BPJS Split vs Patient Direct Paid
+	// 5. BPJS Split vs Patient Direct Paid for Selected Month
 	var totalBPJS, totalPatient, totalGross decimal.Decimal
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ?", "PAID").
+		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
 		Select("COALESCE(SUM(bpjs_amount), 0)").Scan(&totalBPJS)
 
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ?", "PAID").
+		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&totalPatient)
 
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ?", "PAID").
+		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
 		Select("COALESCE(SUM(total_amount), 0)").Scan(&totalGross)
 
 	bpjsPct := 0.0
@@ -103,10 +114,10 @@ func GetAnalyticsSummary() (*AnalyticsSummary, error) {
 		patientPct = (patientFloat / grossFloat) * 100
 	}
 
-	// 6. Counts
+	// 6. Counts for Selected Month
 	var paidCount, pendingCount int64
-	db.Model(&models.MedicalBilling{}).Where("status = ?", "PAID").Count(&paidCount)
-	db.Model(&models.MedicalBilling{}).Where("status != ?", "PAID").Count(&pendingCount)
+	db.Model(&models.MedicalBilling{}).Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).Count(&paidCount)
+	db.Model(&models.MedicalBilling{}).Where("status != ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).Count(&pendingCount)
 
 	// 7. Daily Trends for past 7 days
 	var dailyTrends []DailyTrend
@@ -143,7 +154,7 @@ func GetAnalyticsSummary() (*AnalyticsSummary, error) {
 		})
 	}
 
-	// 8. Top Medical Actions
+	// 8. Top Medical Actions for Selected Month
 	type TopActionResult struct {
 		ItemName    string          `gorm:"column:item_name"`
 		TotalQty    int64           `gorm:"column:total_qty"`
@@ -154,7 +165,7 @@ func GetAnalyticsSummary() (*AnalyticsSummary, error) {
 	db.Table("billing_items").
 		Select("billing_items.item_name as item_name, SUM(billing_items.quantity) as total_qty, SUM(billing_items.sub_total) as total_amount").
 		Joins("JOIN medical_billings ON medical_billings.id = billing_items.billing_id").
-		Where("medical_billings.status = ? AND medical_billings.deleted_at IS NULL AND billing_items.deleted_at IS NULL", "PAID").
+		Where("medical_billings.status = ? AND medical_billings.created_at >= ? AND medical_billings.created_at < ? AND medical_billings.deleted_at IS NULL AND billing_items.deleted_at IS NULL", "PAID", startOfMonth, endOfMonth).
 		Group("billing_items.item_name").
 		Order("total_qty DESC").
 		Limit(5).
@@ -187,14 +198,25 @@ func GetAnalyticsSummary() (*AnalyticsSummary, error) {
 		TopActions:        topActions,
 		TotalPaidCount:    paidCount,
 		TotalPendingCount: pendingCount,
+		SelectedMonth:     month,
+		SelectedYear:      year,
 	}
 
 	return summary, nil
 }
 
-func GenerateFinancialReportCSV() ([]byte, error) {
+func GenerateFinancialReportCSV(month, year int) ([]byte, error) {
 	var billings []models.MedicalBilling
-	err := config.DB.Preload("Items").Order("created_at desc").Find(&billings).Error
+	query := config.DB.Preload("Items")
+
+	if month > 0 && year > 0 {
+		now := time.Now()
+		startOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, now.Location())
+		endOfMonth := startOfMonth.AddDate(0, 1, 0)
+		query = query.Where("created_at >= ? AND created_at < ?", startOfMonth, endOfMonth)
+	}
+
+	err := query.Order("created_at desc").Find(&billings).Error
 	if err != nil {
 		return nil, err
 	}

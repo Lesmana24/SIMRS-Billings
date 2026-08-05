@@ -4,13 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"server/services"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetAnalyticsSummary(c *gin.Context) {
-	summary, err := services.GetAnalyticsSummary()
+	month, _ := strconv.Atoi(c.Query("month"))
+	year, _ := strconv.Atoi(c.Query("year"))
+
+	summary, err := services.GetAnalyticsSummary(month, year)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
@@ -26,7 +30,10 @@ func GetAnalyticsSummary(c *gin.Context) {
 }
 
 func ExportLedgersReport(c *gin.Context) {
-	csvBytes, err := services.GenerateFinancialReportCSV()
+	month, _ := strconv.Atoi(c.Query("month"))
+	year, _ := strconv.Atoi(c.Query("year"))
+
+	csvBytes, err := services.GenerateFinancialReportCSV(month, year)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",

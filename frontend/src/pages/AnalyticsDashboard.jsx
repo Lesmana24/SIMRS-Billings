@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { analyticsApi, ledgerApi } from '../services/api';
 import { StatCard } from '../components/ui/StatCard';
 import { 
@@ -15,20 +15,31 @@ import {
   CheckCircle2, 
   RefreshCw,
   FileSpreadsheet,
-  Hospital
+  Hospital,
+  Filter
 } from 'lucide-react';
 
 export const AnalyticsDashboard = () => {
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear()); // 2026
+
   const [data, setData] = useState(null);
   const [ledgers, setLedgers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  const fetchAnalytics = async () => {
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const yearOptions = [2026, 2025, 2024, 2023];
+
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const [resSummary, resLedgers] = await Promise.all([
-        analyticsApi.getSummary(),
+        analyticsApi.getSummary({ month: selectedMonth, year: selectedYear }),
         ledgerApi.getAll({ page: 1, limit: 10 }),
       ]);
       setData(resSummary.data);
@@ -38,11 +49,11 @@ export const AnalyticsDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [fetchAnalytics]);
 
   const formatIDR = (val) => {
     const num = Number(val) || 0;
@@ -56,7 +67,7 @@ export const AnalyticsDashboard = () => {
   const handleExportCsv = async () => {
     try {
       setExporting(true);
-      await analyticsApi.downloadCsv();
+      await analyticsApi.downloadCsv({ month: selectedMonth, year: selectedYear });
     } catch (err) {
       alert(err.message || 'Gagal mengunduh laporan CSV');
     } finally {
@@ -84,6 +95,7 @@ export const AnalyticsDashboard = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+    const filterPeriodStr = `${monthNames[selectedMonth - 1]} ${selectedYear}`;
 
     const topActionsRows = (data.top_actions || []).map((act, idx) => `
       <tr>
@@ -108,7 +120,7 @@ export const AnalyticsDashboard = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Laporan Keuangan SIMRS - ${nowStr}</title>
+          <title>Laporan Keuangan SIMRS - ${filterPeriodStr}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
             @page { size: A4 portrait; margin: 10mm; }
@@ -139,11 +151,12 @@ export const AnalyticsDashboard = () => {
             </div>
             <div style="text-align: right;">
               <div style="font-size: 10px; font-weight: 700; color: #16a34a;">[ LAPORAN RESMI KAS ]</div>
-              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">Cetak: ${nowStr}</div>
+              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">PERIODE: ${filterPeriodStr.toUpperCase()}</div>
+              <div style="font-size: 8px; color: #94a3b8; margin-top: 1px;">Cetak: ${nowStr}</div>
             </div>
           </div>
 
-          <div class="doc-title">LAPORAN PENERIMAAN KAS & ANALISIS FINANSIAL RUMAH SAKIT</div>
+          <div class="doc-title">LAPORAN PENERIMAAN KAS & ANALISIS FINANSIAL RUMAH SAKIT (${filterPeriodStr.toUpperCase()})</div>
 
           <div class="grid-4">
             <div class="card">
@@ -155,7 +168,7 @@ export const AnalyticsDashboard = () => {
               <div class="card-val">${formatIDR(data.periods?.weekly_revenue)}</div>
             </div>
             <div class="card">
-              <div class="card-label">Kas 30 Hari Terakhir</div>
+              <div class="card-label">Kas Bulan ${monthNames[selectedMonth - 1]}</div>
               <div class="card-val">${formatIDR(data.periods?.monthly_revenue)}</div>
             </div>
             <div class="card">
@@ -164,7 +177,7 @@ export const AnalyticsDashboard = () => {
             </div>
           </div>
 
-          <div class="section-title">Peringkat 5 Tindakan Medis Terlaris</div>
+          <div class="section-title">Peringkat 5 Tindakan Medis Terlaris (${filterPeriodStr})</div>
           <table>
             <thead>
               <tr>
@@ -175,7 +188,7 @@ export const AnalyticsDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              ${topActionsRows}
+              ${topActionsRows || '<tr><td colspan="4" style="text-align:center;">Tidak ada data.</td></tr>'}
             </tbody>
           </table>
 
@@ -269,6 +282,61 @@ export const AnalyticsDashboard = () => {
         </div>
       </div>
 
+      {/* Month & Year Filter Toolbar */}
+      <div className="glass-panel p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-indigo-500/20 bg-indigo-950/20">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+          <Filter size={16} className="text-indigo-400" />
+          <span>Filter Periode Laporan Keuangan:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          {/* Month Selector */}
+          <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10">
+            <Calendar size={14} className="text-cyan-400" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer"
+            >
+              {monthNames.map((mName, idx) => (
+                <option key={idx + 1} value={idx + 1} className="bg-gray-900 text-white">
+                  Bulan {mName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year Selector */}
+          <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10">
+            <Clock size={14} className="text-indigo-400" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer font-mono"
+            >
+              {yearOptions.map((yVal) => (
+                <option key={yVal} value={yVal} className="bg-gray-900 text-white">
+                  Tahun {yVal}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Reset to current month button */}
+          <button
+            onClick={() => {
+              const currentNow = new Date();
+              setSelectedMonth(currentNow.getMonth() + 1);
+              setSelectedYear(currentNow.getFullYear());
+            }}
+            className="btn btn-secondary btn-sm text-xs py-1.5"
+            title="Reset ke Bulan Ini"
+          >
+            Bulan Ini
+          </button>
+        </div>
+      </div>
+
       {/* Period Metric Cards (Daily, Weekly, Monthly, Total) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -286,9 +354,9 @@ export const AnalyticsDashboard = () => {
           color="cyan"
         />
         <StatCard
-          title="Kas 30 Hari Terakhir"
+          title={`Kas ${monthNames[selectedMonth - 1]} ${selectedYear}`}
           value={formatIDR(periods.monthly_revenue)}
-          subtitle="Penerimaan lunas 1 bulan"
+          subtitle={`Penerimaan lunas bulan ${monthNames[selectedMonth - 1]}`}
           icon={DollarSign}
           color="indigo"
         />
@@ -365,7 +433,7 @@ export const AnalyticsDashboard = () => {
         <div className="glass-panel p-5 space-y-4 flex flex-col justify-between">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <PieChart size={18} className="text-cyan-400" /> Distribusi Klaim BPJS vs Mandiri
+              <PieChart size={18} className="text-cyan-400" /> Distribusi Klaim BPJS vs Mandiri ({monthNames[selectedMonth - 1]})
             </h3>
             <p className="text-xs text-gray-400">Persentase kontribusi bayar mandiri vs klaim BPJS</p>
           </div>
@@ -434,14 +502,14 @@ export const AnalyticsDashboard = () => {
         <div className="glass-panel p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <FileSpreadsheet size={18} className="text-amber-400" /> Peringkat 5 Tindakan Medis Terlaris
+              <FileSpreadsheet size={18} className="text-amber-400" /> Peringkat 5 Tindakan Medis Terlaris ({monthNames[selectedMonth - 1]})
             </h3>
             <span className="text-xs text-gray-400">Berdasarkan Total Kuantitas</span>
           </div>
 
           <div className="space-y-3">
             {topActions.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-6">Belum ada data tindakan medis terpakai.</p>
+              <p className="text-xs text-gray-400 text-center py-6">Belum ada data tindakan medis terpakai pada bulan ini.</p>
             ) : (
               topActions.map((act, idx) => {
                 const maxQty = topActions[0]?.total_qty || 1;

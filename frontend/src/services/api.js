@@ -165,10 +165,14 @@ export const pasienApi = {
 // Analytics & Financial Reporting API
 // ----------------------------------------------------
 export const analyticsApi = {
-  getSummary: () => request('/analytics/summary'),
-  downloadCsv: async () => {
+  getSummary: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/analytics/summary${query ? `?${query}` : ''}`);
+  },
+  downloadCsv: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
     const token = localStorage.getItem('simrs_token');
-    const response = await fetch('/api/v1/analytics/export', {
+    const response = await fetch(`${API_BASE_URL}/analytics/export${query ? `?${query}` : ''}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -182,11 +186,10 @@ export const analyticsApi = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Laporan_Penerimaan_Kas_SIMRS_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `Laporan_Kas_SIMRS_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   },
 };
-
