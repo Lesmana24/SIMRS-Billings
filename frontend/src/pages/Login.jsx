@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Hospital, Lock, User, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
+import { Hospital, Lock, User, ArrowRight } from 'lucide-react';
 import { Toast } from '../components/ui/Toast';
 
 export const Login = ({ onSwitchToRegister }) => {
@@ -23,32 +23,27 @@ export const Login = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleQuickFill = (demoUser, demoPass) => {
-    setUsername(demoUser);
-    setPassword(demoPass);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0b0f19]">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#090d16]">
       <div className="w-full max-w-md space-y-6 animate-fade-in">
         {/* Logo & Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3.5 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30 shadow-lg mb-2">
+          <div className="inline-flex p-3.5 bg-emerald-950/60 text-emerald-400 rounded-2xl border border-emerald-500/30 shadow-lg mb-2">
             <Hospital size={36} />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">SIMRS Billing Engine</h1>
-          <p className="text-sm text-gray-400">Masuk ke Sistem Informasi Billing & Pembayaran Pasien</p>
+          <p className="text-sm text-slate-400">Masuk ke Sistem Informasi Billing & Pembayaran Pasien</p>
         </div>
 
         {/* Card Form */}
         <div className="glass-panel p-8 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                 Username
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <User size={18} />
                 </div>
                 <input
@@ -63,11 +58,11 @@ export const Login = ({ onSwitchToRegister }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Lock size={18} />
                 </div>
                 <input
@@ -84,49 +79,19 @@ export const Login = ({ onSwitchToRegister }) => {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full py-3 text-sm disabled:opacity-50"
+              className="btn btn-emerald w-full py-3 text-sm disabled:opacity-50"
             >
               {loading ? 'Memproses Login...' : 'Masuk ke Sistem'} <ArrowRight size={18} />
             </button>
           </form>
 
-          {/* Quick Demo Access Pills */}
-          <div className="pt-4 border-t border-white/10 space-y-2">
-            <p className="text-xs font-semibold text-gray-400 text-center flex items-center justify-center gap-1">
-              <KeyRound size={14} className="text-amber-400" /> Kredensial Demo Awal:
-            </p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin', 'password123')}
-                className="px-2 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 hover:bg-purple-500/20 transition-colors font-medium text-center truncate"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('staff', 'password123')}
-                className="px-2 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-colors font-medium text-center truncate"
-              >
-                Staff
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('pasien1', 'password123')}
-                className="px-2 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-pink-300 hover:bg-pink-500/20 transition-colors font-medium text-center truncate"
-              >
-                Pasien 1
-              </button>
-            </div>
-          </div>
-
-          <div className="text-center pt-2">
-            <p className="text-xs text-gray-400">
+          <div className="text-center pt-4 border-t border-slate-800">
+            <p className="text-xs text-slate-400">
               Belum punya akun pasien?{' '}
               <button
                 type="button"
                 onClick={onSwitchToRegister}
-                className="text-indigo-400 hover:underline font-semibold"
+                className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
               >
                 Daftar Akun Baru
               </button>

@@ -24,10 +24,6 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if input.Role == "" {
-		input.Role = "pasien"
-	}
-
 	hashedPassword, err := utils.HashPassword(input.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -36,10 +32,11 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// Public self-registration ALWAYS hardcodes role to "pasien"
 	user := models.User{
 		Username: input.Username,
 		Password: hashedPassword,
-		Role:     input.Role,
+		Role:     "pasien",
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {
