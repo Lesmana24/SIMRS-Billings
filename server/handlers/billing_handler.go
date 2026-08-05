@@ -112,7 +112,7 @@ func SubmitProof(c *gin.Context) {
 		userRole,
 		"SUBMIT_PROOF",
 		fmt.Sprintf("#BILL-%d", billingID),
-		fmt.Sprintf("Pasien mengunggah foto bukti transfer bank"),
+		"Pasien mengunggah foto bukti transfer bank",
 		c.ClientIP(),
 	)
 
@@ -351,7 +351,7 @@ func DeleteBilling(c *gin.Context) {
 		userRole,
 		"DELETE_BILLING",
 		fmt.Sprintf("#BILL-%d", id),
-		fmt.Sprintf("Menghapus tagihan medis dari database"),
+		"Menghapus tagihan medis dari database",
 		c.ClientIP(),
 	)
 
@@ -415,7 +415,7 @@ func DeletePaymentLedger(c *gin.Context) {
 		userRole,
 		"DELETE_LEDGER",
 		fmt.Sprintf("#LEDGER-%d", id),
-		fmt.Sprintf("Admin menghapus catatan mutasi kas pembukuan"),
+		"Admin menghapus catatan mutasi kas pembukuan",
 		c.ClientIP(),
 	)
 
