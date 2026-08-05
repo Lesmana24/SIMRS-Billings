@@ -41,6 +41,7 @@ export const BillingsPage = () => {
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [bpjsClaim, setBpjsClaim] = useState(0);
   const [selectedActionIds, setSelectedActionIds] = useState([]);
+  const [modalTarifSearch, setModalTarifSearch] = useState('');
 
   // Payment Idempotency State
   const [idempotencyKey, setIdempotencyKey] = useState('');
@@ -76,6 +77,7 @@ export const BillingsPage = () => {
     setSelectedPatientId('');
     setBpjsClaim(0);
     setSelectedActionIds([]);
+    setModalTarifSearch('');
 
     try {
       const [uRes, tRes] = await Promise.all([
@@ -123,7 +125,6 @@ export const BillingsPage = () => {
 
   const openPayModal = (billing) => {
     setPayBilling(billing);
-    // Generate default Idempotency Key e.g., PAY-BILL-1-172280000
     setIdempotencyKey(`PAY-BILL-${billing.ID || billing.id}-${Date.now()}`);
   };
 
@@ -137,7 +138,7 @@ export const BillingsPage = () => {
       
       const updatedData = res.data || payBilling;
       setPayBilling(null);
-      setReceiptBilling(updatedData); // Auto show printable receipt!
+      setReceiptBilling(updatedData);
       fetchBillings();
     } catch (err) {
       setToast({ message: err.message || 'Gagal memproses pembayaran', type: 'error' });
@@ -168,12 +169,15 @@ export const BillingsPage = () => {
     }).format(num);
   };
 
-  // Preview totals for create modal
   const selectedTarifsSum = selectedActionIds.reduce((sum, id) => {
     const found = tarifsList.find((t) => (t.ID || t.id) === id);
     return sum + (found ? Number(found.amount) : 0);
   }, 0);
   const netPatientAmountPreview = Math.max(0, selectedTarifsSum - Number(bpjsClaim || 0));
+
+  const filteredModalTarifs = tarifsList.filter((t) =>
+    (t.action_name || '').toLowerCase().includes(modalTarifSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -334,14 +338,36 @@ export const BillingsPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1.5">
-              Pilih Rincian Tindakan Layanan Medis
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold uppercase text-gray-300">
+                Pilih Rincian Tindakan Layanan Medis
+              </label>
+              {selectedActionIds.length > 0 && (
+                <span className="text-[11px] font-semibold text-indigo-400 font-mono">
+                  {selectedActionIds.length} tindakan dipilih
+                </span>
+              )}
+            </div>
+
+            {/* Quick Search for Tarifs */}
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+              <input
+                type="text"
+                value={modalTarifSearch}
+                onChange={(e) => setModalTarifSearch(e.target.value)}
+                placeholder="Cari tindakan medis (misal: EKG, USG, Darah, Rawat)..."
+                className="glass-input glass-input-icon text-xs py-2"
+              />
+            </div>
+
             <div className="max-h-48 overflow-y-auto space-y-2 p-2 rounded-xl bg-white/5 border border-white/10">
-              {tarifsList.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">Belum ada master tarif layanan.</p>
+              {filteredModalTarifs.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">
+                  {tarifsList.length === 0 ? 'Belum ada master tarif layanan.' : 'Tidak ada tindakan medis yang cocok.'}
+                </p>
               ) : (
-                tarifsList.map((t) => {
+                filteredModalTarifs.map((t) => {
                   const tId = t.ID || t.id;
                   const isChecked = selectedActionIds.includes(tId);
                   return (
