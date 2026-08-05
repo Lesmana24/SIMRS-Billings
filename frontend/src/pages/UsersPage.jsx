@@ -4,7 +4,7 @@ import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
 import { Toast } from '../components/ui/Toast';
-import { Users, Search, Edit3, Trash2, Filter, Plus, UserPlus, ShieldCheck, Lock } from 'lucide-react';
+import { Search, Edit3, Trash2, Filter, UserPlus } from 'lucide-react';
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -129,12 +129,12 @@ export const UsersPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
-            <Users className="text-indigo-400" size={22} /> Manajemen Pengguna & Hak Akses
+          <h2 className="text-xl font-bold text-white tracking-wide">
+            Manajemen Pengguna & Hak Akses
           </h2>
-          <p className="text-xs text-gray-400">Pengelolaan akun administrator, staff kasir, dan pasien terdaftar SIMRS.</p>
+          <p className="text-xs text-slate-400">Pengelolaan akun administrator, staff kasir, dan pasien terdaftar SIMRS.</p>
         </div>
-        <button onClick={openCreateModal} className="btn btn-primary btn-sm flex items-center gap-1.5">
+        <button onClick={openCreateModal} className="btn btn-primary flex items-center gap-1.5">
           <UserPlus size={16} /> Buat Akun Pengguna Baru
         </button>
       </div>
@@ -142,17 +142,17 @@ export const UsersPage = () => {
       {/* Controls */}
       <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Cari username pengguna..."
+            placeholder="Cari username pengguna (contoh: kasir_1, dr_subagyo)..."
             className="glass-input glass-input-icon"
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter size={16} className="text-gray-400" />
+          <Filter size={15} className="text-slate-400" />
           <select
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
@@ -167,53 +167,53 @@ export const UsersPage = () => {
       </div>
 
       {/* Table */}
-      <div className="glass-panel p-5">
+      <div className="glass-panel p-4">
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
-                <th>ID User</th>
-                <th>Username</th>
-                <th>Peran Akses (Role)</th>
-                <th>Tanggal Terdaftar</th>
-                <th className="text-right">Aksi</th>
+                <th>ID Akun</th>
+                <th>Username SIMRS</th>
+                <th>Peran Hak Akses</th>
+                <th>Tanggal Pendaftaran</th>
+                <th className="text-right">Kelola Akun</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-gray-400 py-8">Memuat pengguna...</td>
+                  <td colSpan={5} className="text-center text-slate-400 py-8">Memuat pengguna...</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-gray-400 py-8">Tidak ada pengguna ditemukan.</td>
+                  <td colSpan={5} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
                 </tr>
               ) : (
                 users.map((u) => (
                   <tr key={u.ID || u.id}>
-                    <td className="font-mono text-xs text-gray-400">#USR-{u.ID || u.id}</td>
+                    <td className="font-mono text-xs text-slate-400">#USR-{u.ID || u.id}</td>
                     <td className="font-semibold text-white">{u.username}</td>
                     <td>
                       <Badge variant={u.role}>{u.role}</Badge>
                     </td>
-                    <td className="text-xs text-gray-400 font-mono">
+                    <td className="text-xs text-slate-400 font-mono">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openEditModal(u)}
-                          className="btn btn-secondary btn-sm p-2 text-indigo-400 hover:text-indigo-300"
+                          className="btn btn-secondary btn-sm p-1.5"
                           title="Edit User"
                         >
-                          <Edit3 size={15} />
+                          <Edit3 size={14} />
                         </button>
                         <button
                           onClick={() => setDeleteUser(u)}
-                          className="btn btn-danger btn-sm p-2"
+                          className="btn btn-danger btn-sm p-1.5"
                           title="Hapus User"
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -234,21 +234,21 @@ export const UsersPage = () => {
 
       {/* Modal Create User */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Buat Akun Pengguna SIMRS Baru" maxWidth="max-w-md">
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
+        <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Username Pengguna</label>
+            <label className="block font-semibold uppercase text-slate-300 mb-1">Username Pengguna</label>
             <input
               type="text"
               value={createUsername}
               onChange={(e) => setCreateUsername(e.target.value)}
-              placeholder="misal: kasir_keuangan, dr_subagyo, pasien_budiman..."
+              placeholder="Contoh: kasir_keuangan, dr_subagyo, pasien_budiman..."
               className="glass-input text-xs"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Password</label>
+            <label className="block font-semibold uppercase text-slate-300 mb-1">Password</label>
             <input
               type="password"
               value={createPassword}
@@ -260,7 +260,7 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Peran Hak Akses (Role)</label>
+            <label className="block font-semibold uppercase text-slate-300 mb-1">Peran Hak Akses (Role)</label>
             <select
               value={createRole}
               onChange={(e) => setCreateRole(e.target.value)}
@@ -273,8 +273,8 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1 flex items-center gap-1">
-              <ShieldCheck size={14} className="text-cyan-400" /> Security PIN 2FA (6 Digit)
+            <label className="block font-semibold uppercase text-slate-300 mb-1">
+              Security PIN 2FA (6 Digit)
             </label>
             <input
               type="text"
@@ -284,10 +284,10 @@ export const UsersPage = () => {
               placeholder="123456"
               className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold"
             />
-            <p className="text-[10px] text-gray-400 mt-1">Default PIN 2FA: <code className="text-cyan-300">123456</code></p>
+            <p className="text-[10px] text-slate-400 mt-1">Default PIN 2FA: <code className="text-cyan-300">123456</code></p>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
             <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm">
               Batal
             </button>
@@ -300,24 +300,24 @@ export const UsersPage = () => {
 
       {/* Modal Edit User */}
       <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title="Edit Data Pengguna">
-        <form onSubmit={handleEditSubmit} className="space-y-4">
+        <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Username</label>
+            <label className="block font-semibold uppercase text-slate-300 mb-1">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="glass-input"
+              className="glass-input text-xs"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">Peran Hak Akses (Role)</label>
+            <label className="block font-semibold uppercase text-slate-300 mb-1">Peran Hak Akses (Role)</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="glass-input"
+              className="glass-input text-xs"
             >
               <option value="admin">Administrator</option>
               <option value="staff">Staff Kasir / Medis</option>
@@ -326,7 +326,7 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-300 mb-1">
+            <label className="block font-semibold uppercase text-slate-300 mb-1">
               Reset Password (Opsional)
             </label>
             <input
@@ -334,11 +334,11 @@ export const UsersPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Kosongkan jika tidak ingin mengubah password..."
-              className="glass-input"
+              className="glass-input text-xs"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
             <button type="button" onClick={() => setEditUser(null)} className="btn btn-secondary btn-sm">
               Batal
             </button>
@@ -351,11 +351,11 @@ export const UsersPage = () => {
 
       {/* Modal Delete User */}
       <Modal isOpen={!!deleteUser} onClose={() => setDeleteUser(null)} title="Konfirmasi Hapus Pengguna">
-        <div className="space-y-4">
-          <p className="text-sm text-gray-300">
+        <div className="space-y-3 text-xs">
+          <p className="text-slate-300">
             Apakah Anda yakin ingin menghapus akun <strong className="text-white">{deleteUser?.username}</strong>?
           </p>
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
             <button type="button" onClick={() => setDeleteUser(null)} className="btn btn-secondary btn-sm">
               Batal
             </button>

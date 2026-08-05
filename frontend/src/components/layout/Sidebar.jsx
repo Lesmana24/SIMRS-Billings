@@ -35,45 +35,47 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   return (
     <>
-      {/* Mobile backdrop positioned cleanly under navbar */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-x-0 top-[57px] bottom-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-x-0 top-[57px] bottom-0 z-30 bg-black/70 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
 
       <aside className={`
         fixed md:static top-[57px] md:top-0 bottom-0 left-0 z-40
-        w-64 h-full bg-gray-950/95 border-r border-white/10 p-4
+        w-64 bg-slate-950 border-r border-slate-800/80 p-3.5
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         flex flex-col justify-between shrink-0 overflow-y-auto
       `}>
         <div>
-          {/* Header Mobile */}
-          <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10 md:hidden">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 md:hidden">
             <span className="font-bold text-white text-xs uppercase tracking-wider">Navigasi SIMRS</span>
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg">
+            <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
               <X size={18} />
             </button>
           </div>
 
-          <div className="mb-6 px-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Portal Akses</p>
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg shrink-0">
-                <UserCheck size={18} />
+          {/* Access Portal */}
+          <div className="mb-5 px-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Portal Otorisasi</p>
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-3">
+              <div className="p-1.5 bg-emerald-950/80 text-emerald-400 rounded border border-emerald-500/30 shrink-0">
+                <UserCheck size={16} />
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-semibold text-white truncate">Peran: {role?.toUpperCase()}</p>
-                <p className="text-[10px] text-gray-400">SIMRS Billing Engine</p>
+                <p className="text-xs font-bold text-slate-100 truncate">Hak Akses: {role?.toUpperCase()}</p>
+                <p className="text-[10px] text-slate-400">SIMRS Financial Engine</p>
               </div>
             </div>
           </div>
 
+          {/* Nav Items */}
           <nav className="space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 px-1 mb-2">Menu Utama</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">Menu Navigasi</p>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -82,27 +84,27 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`
-                    w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium
-                    transition-all duration-150 group
+                    w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold
+                    transition-colors duration-150 group
                     ${isActive
-                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                      ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900'}
                   `}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} className={isActive ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-300'} />
+                  <div className="flex items-center gap-2.5">
+                    <Icon size={16} className={isActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-slate-200'} />
                     <span>{item.label}</span>
                   </div>
-                  {isActive && <ChevronRight size={16} className="text-indigo-400" />}
+                  {isActive && <ChevronRight size={14} className="text-emerald-400" />}
                 </button>
               );
             })}
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-white/10 text-center shrink-0 mt-6">
-          <p className="text-[11px] text-gray-500">SIMRS Billing System v1.0</p>
-          <p className="text-[10px] text-gray-600 font-mono mt-0.5">Decimal Math • Idempotent Payments</p>
+        <div className="pt-3 border-t border-slate-800/80 text-center shrink-0 mt-6">
+          <p className="text-[11px] text-slate-400 font-semibold">SIMRS Billing System v1.0</p>
+          <p className="text-[10px] text-slate-400 font-mono mt-0.5">Clinical Ledger • Idempotent Engine</p>
         </div>
       </aside>
     </>

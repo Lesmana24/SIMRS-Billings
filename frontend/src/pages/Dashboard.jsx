@@ -1,133 +1,146 @@
 import React, { useState, useEffect } from 'react';
-import { billingApi, ledgerApi } from '../services/api';
+import { analyticsApi, billingApi } from '../services/api';
 import { StatCard } from '../components/ui/StatCard';
 import { Badge } from '../components/ui/Badge';
 import { ReceiptModal } from '../components/ui/ReceiptModal';
-import { 
-  DollarSign, 
-  Clock, 
-  CheckCircle2, 
-  ShieldCheck, 
-  Plus, 
-  ArrowUpRight, 
-  Receipt,
-  FileSpreadsheet
-} from 'lucide-react';
+import { DollarSign, Clock, ShieldCheck, FileSpreadsheet, ArrowUpRight, Plus } from 'lucide-react';
 
 export const Dashboard = ({ onNavigate }) => {
-  const [billings, setBillings] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [recentBillings, setRecentBillings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBilling, setSelectedBilling] = useState(null);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await billingApi.getAll({ page: 1, limit: 10 });
-        setBillings(res.data || []);
+        const [summaryRes, billingsRes] = await Promise.all([
+          analyticsApi.getSummary(),
+          billingApi.getAll({ limit: 5 }),
+        ]);
+
+        setSummary(summaryRes.data);
+        setRecentBillings(billingsRes.data || []);
       } catch (err) {
-        console.error('Failed to load dashboard billings:', err);
+        console.error('Gagal mengambil data dashboard:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-  const formatIDR = (val) => {
-    const num = Number(val) || 0;
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(num);
-  };
-
-  // Derived Metrics
-  const totalBillingsCount = billings.length;
-  const paidBillings = billings.filter((b) => b.status === 'PAID');
-  const pendingBillings = billings.filter((b) => b.status === 'Pending');
-
-  const totalRevenue = paidBillings.reduce((sum, b) => sum + (Number(b.patient_amount) || 0), 0);
-  const totalPendingAmount = pendingBillings.reduce((sum, b) => sum + (Number(b.patient_amount) || 0), 0);
-  const totalBPJSClaims = billings.reduce((sum, b) => sum + (Number(b.bpjs_amount) || 0), 0);
+  const dailyRev = summary?.periods?.daily_revenue ? parseFloat(summary.periods.daily_revenue) : 0;
+  const pendingCount = summary?.total_pending_count || 0;
+  const totalInsurance = summary?.bpjs_split 
+    ? (parseFloat(summary.bpjs_split.total_bpjs || 0) + parseFloat(summary.bpjs_split.total_private_ins || 0))
+    : 0;
+  const totalRev = summary?.periods?.total_revenue ? parseFloat(summary.periods.total_revenue) : 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header Overview */}
+      {/* Top Welcome Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide">Ringkasan Operational Billing</h2>
-          <p className="text-xs text-gray-400">Pantau performa pembayaran kasir, BPJS, dan status tagihan medis secara real-time.</p>
+          <h2 className="text-xl font-bold text-slate-100 tracking-wide">
+            Dashboard Overview SIMRS
+          </h2>
+          <p className="text-xs text-slate-400">Ringkasan penerimaan kas harian, klaim penjamin, dan otorisasi billing medis.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('billings')} className="btn btn-primary btn-sm">
-            <Plus size={16} /> Buat Tagihan Pasien
-          </button>
-        </div>
+        <button
+          onClick={() => onNavigate && onNavigate('billings')}
+          className="btn btn-emerald flex items-center gap-1.5"
+        >
+          <Plus size={16} /> Terbitkan Billing Pasien
+        </button>
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Stat Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Mutasi Kas (Lunas)"
-          value={formatIDR(totalRevenue)}
-          subtitle={`${paidBillings.length} tagihan telah dibayar`}
+          title="Kas Hari Ini"
+          value={`Rp ${dailyRev.toLocaleString('id-ID')}`}
+          subtitle={`${summary?.total_paid_count || 0} tagihan lunas`}
           icon={DollarSign}
           color="emerald"
         />
         <StatCard
-          title="Tagihan Belum Dibayar"
-          value={formatIDR(totalPendingAmount)}
-          subtitle={`${pendingBillings.length} tagihan berstatus Pending`}
+          title="Tagihan Pending"
+          value={`${pendingCount} Tagihan`}
+          subtitle="Belum melunasi billing"
           icon={Clock}
           color="amber"
         />
         <StatCard
-          title="Subsidi BPJS Kesehatan"
-          value={formatIDR(totalBPJSClaims)}
-          subtitle="Klaim yang telah ditanggung"
+          title="Klaim Penjamin Medis"
+          value={`Rp ${totalInsurance.toLocaleString('id-ID')}`}
+          subtitle="Total BPJS & Swasta"
           icon={ShieldCheck}
           color="cyan"
         />
         <StatCard
-          title="Total Registrasi Tagihan"
-          value={totalBillingsCount}
-          subtitle="Keseluruhan transaksi medis"
-          icon={Receipt}
-          color="indigo"
+          title="Akumulasi Kas Lunas"
+          value={`Rp ${totalRev.toLocaleString('id-ID')}`}
+          subtitle="Keseluruhan penerimaan"
+          icon={FileSpreadsheet}
+          color="slate"
         />
       </div>
 
-      {/* Quick Action Banner */}
-      <div className="glass-panel p-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-        <div>
-          <h3 className="text-sm font-bold text-white mb-1">Aksi Cepat Manajemen</h3>
-          <p className="text-xs text-gray-400">Kelola tarif layanan rumah sakit atau periksa rincian mutasi kas masuk.</p>
-        </div>
-        <div className="md:col-span-2 flex flex-wrap items-center gap-3 justify-start md:justify-end">
-          <button onClick={() => onNavigate('analytics')} className="btn btn-secondary btn-sm">
-            Analytics Keuangan <ArrowUpRight size={14} className="text-indigo-400" />
+      {/* Quick Action Navigation Grid */}
+      <div className="glass-panel p-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+          Aksi Cepat Manajemen SIMRS
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            onClick={() => onNavigate && onNavigate('analytics')}
+            className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 text-left transition-colors group flex items-center justify-between"
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">Laporan & Analytics Keuangan</p>
+              <p className="text-[11px] text-slate-400">Grafik pendapatan & klaim BPJS vs Mandiri</p>
+            </div>
+            <ArrowUpRight size={15} className="text-slate-500 group-hover:text-emerald-400" />
           </button>
-          <button onClick={() => onNavigate('tarifs')} className="btn btn-secondary btn-sm">
-            Master Tarif Layanan <ArrowUpRight size={14} />
+
+          <button
+            onClick={() => onNavigate && onNavigate('tarifs')}
+            className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 text-left transition-colors group flex items-center justify-between"
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">Master Tarif Layanan</p>
+              <p className="text-[11px] text-slate-400">Kelola tarif standar konsultasi & medis</p>
+            </div>
+            <ArrowUpRight size={15} className="text-slate-500 group-hover:text-emerald-400" />
           </button>
-          <button onClick={() => onNavigate('ledgers')} className="btn btn-secondary btn-sm">
-            Jurnal Kas & Mutasi <FileSpreadsheet size={14} />
-          </button>
-          <button onClick={() => onNavigate('billings')} className="btn btn-emerald btn-sm">
-            Proses Pembayaran <Receipt size={14} />
+
+          <button
+            onClick={() => onNavigate && onNavigate('ledgers')}
+            className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 text-left transition-colors group flex items-center justify-between"
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">Jurnal Mutasi Kas</p>
+              <p className="text-[11px] text-slate-400">Periksa rincian mutasi penerimaan kas</p>
+            </div>
+            <ArrowUpRight size={15} className="text-slate-500 group-hover:text-emerald-400" />
           </button>
         </div>
       </div>
 
-      {/* Recent Activity Table */}
-      <div className="glass-panel p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-white">Transaksi Tagihan Terakhir</h3>
-          <button onClick={() => onNavigate('billings')} className="text-xs text-indigo-400 hover:underline font-semibold">
-            Lihat Semua Tagihan →
+      {/* Recent Transactions Table */}
+      <div className="glass-panel p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Transaksi Tagihan Medis Terakhir
+          </h3>
+          <button
+            onClick={() => onNavigate && onNavigate('billings')}
+            className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+          >
+            Lihat Semua Tagihan <ArrowUpRight size={14} />
           </button>
         </div>
 
@@ -135,56 +148,68 @@ export const Dashboard = ({ onNavigate }) => {
           <table className="table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Nama Pasien</th>
-                <th>Total Tindakan</th>
-                <th>Subsidi BPJS</th>
-                <th>Bersih Pasien</th>
-                <th>Status</th>
-                <th className="text-right">Aksi</th>
+                <th>No. Ref Billing</th>
+                <th>Pasien SIMRS</th>
+                <th>Total Bruto (IDR)</th>
+                <th>Skema Penjamin</th>
+                <th>Beban Netto Pasien</th>
+                <th>Status Otorisasi</th>
+                <th className="text-right">Aksi Kasir</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-400 py-8">Memuat data dashboard...</td>
+                  <td colSpan={7} className="text-center text-slate-400 py-6">Memuat transaksi terbaru...</td>
                 </tr>
-              ) : billings.length === 0 ? (
+              ) : recentBillings.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-400 py-8">Belum ada transaksi tagihan.</td>
+                  <td colSpan={7} className="text-center text-slate-400 py-6">Belum ada transaksi tagihan.</td>
                 </tr>
               ) : (
-                billings.slice(0, 5).map((b) => (
-                  <tr key={b.ID || b.id}>
-                    <td className="font-mono text-xs text-gray-400">#BILL-{b.ID || b.id}</td>
-                    <td className="font-semibold text-white">{b.patient_name}</td>
-                    <td className="number-font">{formatIDR(b.total_amount)}</td>
-                    <td className="number-font text-cyan-400">{formatIDR(b.bpjs_amount)}</td>
-                    <td className="number-font font-bold text-emerald-400">{formatIDR(b.patient_amount)}</td>
-                    <td>
-                      <Badge variant={b.status}>{b.status}</Badge>
-                    </td>
-                    <td className="text-right">
-                      <button
-                        onClick={() => setSelectedBilling(b)}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        Lihat Struk
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                recentBillings.map((b) => {
+                  const isPaid = b.status === 'PAID';
+                  return (
+                    <tr key={b.ID || b.id}>
+                      <td className="font-mono text-xs text-slate-400">#BILL-{b.ID || b.id}</td>
+                      <td className="font-semibold text-white">{b.patient_name}</td>
+                      <td className="font-mono text-xs text-slate-200">
+                        Rp {(b.total_amount || 0).toLocaleString('id-ID')}
+                      </td>
+                      <td>
+                        <span className="text-xs text-slate-300">{b.insurance_type || 'Mandiri'}</span>
+                      </td>
+                      <td className="font-mono text-xs font-bold text-emerald-400">
+                        Rp {(b.patient_amount || 0).toLocaleString('id-ID')}
+                      </td>
+                      <td>
+                        <Badge variant={isPaid ? 'paid' : 'pending'}>{b.status}</Badge>
+                      </td>
+                      <td className="text-right">
+                        <button
+                          onClick={() => setSelectedBilling(b)}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Lihat Struk
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      <ReceiptModal
-        isOpen={!!selectedBilling}
-        onClose={() => setSelectedBilling(null)}
-        billing={selectedBilling}
-      />
+      {/* Receipt Modal */}
+      {selectedBilling && (
+        <ReceiptModal
+          isOpen={true}
+          onClose={() => setSelectedBilling(null)}
+          billing={selectedBilling}
+        />
+      )}
     </div>
   );
 };
