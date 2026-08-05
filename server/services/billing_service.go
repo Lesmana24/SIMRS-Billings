@@ -96,10 +96,8 @@ func ProcessPayment(billingID uint, idempotencyKey string, proofURL string) (*mo
 		}
 
 		updates := map[string]interface{}{
-			"status": "PAID",
-		}
-		if proofURL != "" {
-			updates["proof_of_payment"] = proofURL
+			"status":           "PAID",
+			"proof_of_payment": proofURL,
 		}
 
 		if err := tx.Model(&billing).Updates(updates).Error; err != nil {
@@ -164,10 +162,11 @@ func RejectPayment(billingID uint) (*models.MedicalBilling, error) {
 	}
 
 	updates := map[string]interface{}{
-		"status": "REJECTED",
+		"status":           "REJECTED",
+		"proof_of_payment": "",
 	}
 
-	if err := config.DB.Model(&billing).Updates(updates).Error; err != nil {
+	if err := config.DB.Model(&billing).Select("status", "proof_of_payment").Updates(updates).Error; err != nil {
 		return nil, fmt.Errorf("Gagal menolak pembayaran: %w", err)
 	}
 

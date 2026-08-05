@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { pasienApi, billingApi } from '../services/api';
-import { imagekitService } from '../services/imagekit';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
@@ -18,7 +17,8 @@ import {
   Copy, 
   Check, 
   Image as ImageIcon,
-  Building2
+  Building2,
+  Clock
 } from 'lucide-react';
 
 export const MyBillingsPage = () => {
@@ -37,7 +37,7 @@ export const MyBillingsPage = () => {
   // Transfer Proof Upload State
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedBank, setCopiedBank] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
@@ -96,31 +96,25 @@ export const MyBillingsPage = () => {
       return;
     }
 
-    setIsUploading(true);
+    setIsSubmitting(true);
     try {
-      // 1. Upload to ImageKit Cloud Storage
-      const uploadRes = await imagekitService.uploadFile(
-        proofFile,
-        `bukti-bayar-BILL-${payBillingModal.ID || payBillingModal.id}`
+      // Send proof file to backend server -> Status becomes WAITING_VERIFICATION
+      const res = await billingApi.submitProof(
+        payBillingModal.ID || payBillingModal.id, 
+        proofFile
       );
 
-      // 2. Process payment with idempotency key
-      const idempotencyKey = `PATIENT-PAY-${payBillingModal.ID || payBillingModal.id}-${Date.now()}`;
-      const res = await billingApi.pay(payBillingModal.ID || payBillingModal.id, idempotencyKey);
-
       setToast({ 
-        message: 'Pembayaran & bukti transfer ImageKit berhasil dikonfirmasi!', 
+        message: 'Bukti transfer berhasil diunggah! Menunggu verifikasi kasir SIMRS', 
         type: 'success' 
       });
 
-      const updatedBilling = res.data || payBillingModal;
       setPayBillingModal(null);
-      setSelectedBilling(updatedBilling); // Show updated receipt!
       fetchMyBillings();
     } catch (err) {
-      setToast({ message: err.message || 'Gagal mengirim pembayaran', type: 'error' });
+      setToast({ message: err.message || 'Gagal mengunggah bukti pembayaran', type: 'error' });
     } finally {
-      setIsUploading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -165,7 +159,8 @@ export const MyBillingsPage = () => {
             className="glass-input sm:w-40"
           >
             <option value="">Semua Status</option>
-            <option value="Pending">Pending (Belum Lunas)</option>
+            <option value="Pending">Pending (Belum Dibayar)</option>
+            <option value="WAITING_VERIFICATION">Menunggu Verifikasi Kasir</option>
             <option value="PAID">PAID (Sudah Lunas)</option>
           </select>
         </div>
@@ -214,7 +209,7 @@ export const MyBillingsPage = () => {
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {b.status === 'Pending' ? (
+                        {b.status === 'Pending' || b.status === 'REJECTED' ? (
                           <>
                             <button
                               onClick={() => openPayModal(b)}
@@ -222,6 +217,18 @@ export const MyBillingsPage = () => {
                             >
                               <CreditCard size={14} /> Bayar Tagihan
                             </button>
+                            <button
+                              onClick={() => setSelectedBilling(b)}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Rincian
+                            </button>
+                          </>
+                        ) : b.status === 'WAITING_VERIFICATION' ? (
+                          <>
+                            <span className="text-xs text-cyan-400 flex items-center gap-1 font-medium bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20">
+                              <Clock size={13} /> Menunggu Kasir
+                            </span>
                             <button
                               onClick={() => setSelectedBilling(b)}
                               className="btn btn-secondary btn-sm"
@@ -270,7 +277,7 @@ export const MyBillingsPage = () => {
                 {formatIDR(payBillingModal?.patient_amount)}
               </span>
             </div>
-            <Badge variant="Pending">Menunggu Transfer</Badge>
+            <Badge variant="Pending">Pending</Badge>
           </div>
 
           {/* Destination Bank Account Info */}
@@ -363,10 +370,10 @@ export const MyBillingsPage = () => {
             </button>
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isSubmitting}
               className="btn btn-emerald btn-sm disabled:opacity-50"
             >
-              {isUploading ? 'Mengunggah ke ImageKit Cloud...' : 'Upload & Konfirmasi Pembayaran'}
+              {isSubmitting ? 'Mengunggah Bukti Pembayaran...' : 'Kirim Bukti untuk Verifikasi'}
             </button>
           </div>
         </form>

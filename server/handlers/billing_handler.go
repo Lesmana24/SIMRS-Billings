@@ -111,6 +111,11 @@ func PayBilling(c *gin.Context) {
 		proofURL = c.PostForm("proof_of_payment")
 	}
 
+	existingBilling, _ := services.GetBillingByID(uint(billingID))
+	if proofURL == "" && existingBilling != nil && existingBilling.Status == "WAITING_VERIFICATION" {
+		proofURL = existingBilling.ProofOfPayment
+	}
+
 	billing, err := services.ProcessPayment(uint(billingID), idempotencyKey, proofURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

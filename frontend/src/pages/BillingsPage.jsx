@@ -15,7 +15,12 @@ import {
   CheckCircle2,
   ShieldCheck,
   User,
-  Filter
+  Filter,
+  Eye,
+  Check,
+  X,
+  Image as ImageIcon,
+  ExternalLink
 } from 'lucide-react';
 
 export const BillingsPage = () => {
@@ -30,6 +35,7 @@ export const BillingsPage = () => {
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [payBilling, setPayBilling] = useState(null);
+  const [verifyBilling, setVerifyBilling] = useState(null);
   const [receiptBilling, setReceiptBilling] = useState(null);
   const [deleteBilling, setDeleteBilling] = useState(null);
 
@@ -43,9 +49,9 @@ export const BillingsPage = () => {
   const [selectedActionIds, setSelectedActionIds] = useState([]);
   const [modalTarifSearch, setModalTarifSearch] = useState('');
 
-  // Payment Idempotency State
+  // Payment Idempotency & Verification State
   const [idempotencyKey, setIdempotencyKey] = useState('');
-  const [isPaying, setIsPaying] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
   const fetchBillings = useCallback(async () => {
@@ -128,13 +134,53 @@ export const BillingsPage = () => {
     setIdempotencyKey(`PAY-BILL-${billing.ID || billing.id}-${Date.now()}`);
   };
 
-  const handleProcessPayment = async () => {
+  const openVerifyModal = (billing) => {
+    setVerifyBilling(billing);
+    setIdempotencyKey(`VERIFY-BILL-${billing.ID || billing.id}-${Date.now()}`);
+  };
+
+  const handleApproveVerification = async () => {
+    if (!verifyBilling) return;
+    setIsProcessing(true);
+
+    try {
+      const res = await billingApi.pay(verifyBilling.ID || verifyBilling.id, idempotencyKey);
+      setToast({ message: res.message || 'Pembayaran berhasil disetujui & dilunaskan!', type: 'success' });
+      
+      const updatedData = res.data || verifyBilling;
+      setVerifyBilling(null);
+      setReceiptBilling(updatedData);
+      fetchBillings();
+    } catch (err) {
+      setToast({ message: err.message || 'Gagal menyetujui pembayaran', type: 'error' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectVerification = async () => {
+    if (!verifyBilling) return;
+    setIsProcessing(true);
+
+    try {
+      await billingApi.reject(verifyBilling.ID || verifyBilling.id);
+      setToast({ message: 'Bukti pembayaran berhasil ditolak', type: 'success' });
+      setVerifyBilling(null);
+      fetchBillings();
+    } catch (err) {
+      setToast({ message: err.message || 'Gagal menolak bukti pembayaran', type: 'error' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleProcessDirectPayment = async () => {
     if (!payBilling) return;
-    setIsPaying(true);
+    setIsProcessing(true);
 
     try {
       const res = await billingApi.pay(payBilling.ID || payBilling.id, idempotencyKey);
-      setToast({ message: res.message || 'Pembayaran berhasil diproses!', type: 'success' });
+      setToast({ message: res.message || 'Pembayaran kasir berhasil diproses!', type: 'success' });
       
       const updatedData = res.data || payBilling;
       setPayBilling(null);
@@ -143,7 +189,7 @@ export const BillingsPage = () => {
     } catch (err) {
       setToast({ message: err.message || 'Gagal memproses pembayaran', type: 'error' });
     } finally {
-      setIsPaying(false);
+      setIsProcessing(false);
     }
   };
 
@@ -187,7 +233,7 @@ export const BillingsPage = () => {
           <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
             <Receipt className="text-indigo-400" size={22} /> Transaksi Medical Billing
           </h2>
-          <p className="text-xs text-gray-400">Pengelolaan tagihan tindakan medis pasien, klaim BPJS, dan pembayaran idempoten.</p>
+          <p className="text-xs text-gray-400">Pengelolaan tagihan tindakan medis, verifikasi transfer bank pasien, dan pelunasan idempoten.</p>
         </div>
         <button onClick={openCreateModal} className="btn btn-primary btn-sm">
           <Plus size={16} /> Buat Tagihan Pasien Baru
@@ -211,11 +257,13 @@ export const BillingsPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="glass-input sm:w-40"
+            className="glass-input sm:w-48"
           >
             <option value="">Semua Status</option>
             <option value="Pending">Pending (Belum Lunas)</option>
+            <option value="WAITING_VERIFICATION">Menunggu Verifikasi Kasir</option>
             <option value="PAID">PAID (Sudah Lunas)</option>
+            <option value="REJECTED">Bukti Ditolak</option>
           </select>
         </div>
       </div>
@@ -233,7 +281,7 @@ export const BillingsPage = () => {
                 <th>Bersih Pasien</th>
                 <th>Status</th>
                 <th>Tanggal</th>
-                <th className="text-right">Aksi</th>
+                <th className="text-right">Aksi Kasir</th>
               </tr>
             </thead>
             <tbody>
@@ -261,11 +309,19 @@ export const BillingsPage = () => {
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {b.status === 'Pending' ? (
+                        {b.status === 'WAITING_VERIFICATION' ? (
+                          <button
+                            onClick={() => openVerifyModal(b)}
+                            className="btn btn-primary btn-sm bg-cyan-600 hover:bg-cyan-500 border-cyan-400"
+                            title="Verifikasi Bukti Pembayaran Pasien"
+                          >
+                            <Eye size={14} /> Verifikasi Kasir
+                          </button>
+                        ) : b.status === 'Pending' || b.status === 'REJECTED' ? (
                           <button
                             onClick={() => openPayModal(b)}
                             className="btn btn-emerald btn-sm"
-                            title="Proses Pembayaran"
+                            title="Proses Pembayaran Tunai / EDC Kasir"
                           >
                             <CreditCard size={14} /> Bayar Kasir
                           </button>
@@ -421,8 +477,100 @@ export const BillingsPage = () => {
         </form>
       </Modal>
 
-      {/* Modal Pay Billing (Idempotent Payment) */}
-      <Modal isOpen={!!payBilling} onClose={() => setPayBilling(null)} title="Proses Pembayaran Kasir (Idempotent)">
+      {/* Modal Verification for Staff / Admin */}
+      <Modal 
+        isOpen={!!verifyBilling} 
+        onClose={() => setVerifyBilling(null)} 
+        title={`Verifikasi Bukti Transfer Tagihan #BILL-${verifyBilling?.ID || verifyBilling?.id}`}
+        maxWidth="max-w-xl"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 space-y-2">
+            <div className="flex justify-between text-xs text-gray-300">
+              <span>Pasien SIMRS:</span>
+              <strong className="text-white">{verifyBilling?.patient_name}</strong>
+            </div>
+            <div className="flex justify-between text-xs text-gray-300">
+              <span>Total Nominal yang Harus Ditransfer:</span>
+              <strong className="font-mono text-emerald-400 text-base">{formatIDR(verifyBilling?.patient_amount)}</strong>
+            </div>
+          </div>
+
+          {/* Bukti Transfer ImageKit Cloud */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase text-gray-300 flex items-center gap-1.5">
+                <ImageIcon size={14} className="text-indigo-400" /> Foto Bukti Transfer (ImageKit Cloud)
+              </label>
+              {verifyBilling?.proof_of_payment && (
+                <a 
+                  href={verifyBilling.proof_of_payment} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="text-xs text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
+                >
+                  Buka Gambar Penuh <ExternalLink size={12} />
+                </a>
+              )}
+            </div>
+
+            {verifyBilling?.proof_of_payment ? (
+              <div className="rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2 max-h-64 flex items-center justify-center">
+                <img 
+                  src={verifyBilling.proof_of_payment} 
+                  alt="Bukti Transfer ImageKit" 
+                  className="max-h-60 object-contain rounded-lg"
+                />
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-gray-400 rounded-xl bg-white/5 border border-white/10">
+                Pasien belum mengunggah foto bukti transfer.
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-1">
+              Idempotency Header Key (<code className="text-indigo-300">X-Idempotency-Key</code>)
+            </label>
+            <input
+              type="text"
+              value={idempotencyKey}
+              onChange={(e) => setIdempotencyKey(e.target.value)}
+              className="glass-input font-mono text-xs"
+              required
+            />
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-white/10">
+            <button
+              type="button"
+              onClick={handleRejectVerification}
+              disabled={isProcessing}
+              className="btn btn-danger btn-sm flex items-center gap-1"
+            >
+              <X size={14} /> Tolak Bukti Transfer
+            </button>
+
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setVerifyBilling(null)} className="btn btn-secondary btn-sm">
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleApproveVerification}
+                disabled={isProcessing}
+                className="btn btn-emerald btn-sm flex items-center gap-1"
+              >
+                <Check size={14} /> {isProcessing ? 'Memproses...' : 'Setujui & Lunaskan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Pay Billing (Direct Cashier Payment) */}
+      <Modal isOpen={!!payBilling} onClose={() => setPayBilling(null)} title="Proses Pembayaran Kasir Direct (Idempotent)">
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-2">
             <div className="flex justify-between text-xs text-gray-300">
@@ -446,9 +594,6 @@ export const BillingsPage = () => {
               className="glass-input font-mono text-xs"
               required
             />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Kunci idempoten mencegah pendebitan kas ganda (*double charge*) jika request terkirim lebih dari satu kali.
-            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -457,11 +602,11 @@ export const BillingsPage = () => {
             </button>
             <button
               type="button"
-              onClick={handleProcessPayment}
-              disabled={isPaying}
+              onClick={handleProcessDirectPayment}
+              disabled={isProcessing}
               className="btn btn-emerald btn-sm"
             >
-              {isPaying ? 'Memproses Cash/Debit...' : 'Konfirmasi Pembayaran Lunas'}
+              {isProcessing ? 'Memproses Cash/Debit...' : 'Konfirmasi Pembayaran Lunas'}
             </button>
           </div>
         </div>

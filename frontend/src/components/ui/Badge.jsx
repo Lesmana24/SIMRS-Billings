@@ -2,11 +2,18 @@ import React from 'react';
 
 export const Badge = ({ children, variant = 'default', className = '' }) => {
   const getVariantClass = () => {
-    switch (variant.toLowerCase()) {
+    const v = String(variant).toLowerCase();
+    switch (v) {
       case 'paid':
         return 'badge-paid';
       case 'pending':
         return 'badge-pending';
+      case 'waiting_verification':
+      case 'verifikasi':
+        return 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30';
+      case 'rejected':
+      case 'ditolak':
+        return 'bg-rose-500/15 text-rose-400 border border-rose-500/30';
       case 'admin':
         return 'badge-admin';
       case 'staff':
@@ -20,9 +27,17 @@ export const Badge = ({ children, variant = 'default', className = '' }) => {
     }
   };
 
+  const getLabel = () => {
+    if (typeof children === 'string') {
+      if (children === 'WAITING_VERIFICATION') return 'Menunggu Verifikasi Kasir';
+      if (children === 'REJECTED') return 'Bukti Ditolak';
+    }
+    return children;
+  };
+
   return (
     <span className={`badge ${getVariantClass()} ${className}`}>
-      {children}
+      {getLabel()}
     </span>
   );
 };
