@@ -372,7 +372,7 @@ export const AnalyticsDashboard = () => {
       {/* Charts Grid (Row 1: Trend Bar Chart & BPJS Donut Share) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart 1: Daily Revenue Trend Bar Chart (2 cols) */}
-        <div className="lg:col-span-2 glass-panel p-5 space-y-4">
+        <div className="lg:col-span-2 glass-panel p-5 space-y-4 relative z-20">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -388,27 +388,81 @@ export const AnalyticsDashboard = () => {
             <div className="h-56 flex items-end gap-3 sm:gap-6 px-2 border-b border-slate-800">
               {trends.map((t, idx) => {
                 const totalVal = Number(t.total_amount) || 0;
+                const patVal = Number(t.patient_amount) || 0;
+                const bpjsVal = Number(t.bpjs_amount) || 0;
+                const insVal = Number(t.insurance_amount) || 0;
+
                 const heightPct = Math.max(10, Math.round((totalVal / maxTrendVal) * 100));
 
+                const patPct = totalVal > 0 ? (patVal / totalVal) * 100 : 0;
+                const bpjsPct = totalVal > 0 ? (bpjsVal / totalVal) * 100 : 0;
+                const insPct = totalVal > 0 ? (insVal / totalVal) * 100 : 0;
+
+                const isRightAligned = idx >= trends.length - 2;
+                const isLeftAligned = idx <= 1;
+                const tooltipPosClass = isRightAligned 
+                  ? 'right-0 left-auto' 
+                  : (isLeftAligned ? 'left-0 right-auto' : 'left-1/2 -translate-x-1/2');
+
                 return (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end relative">
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end relative hover:z-30">
                     {/* Tooltip on Hover */}
-                    <div className="absolute -top-16 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 text-white text-[10px] p-2 rounded-lg border border-emerald-500/40 shadow-xl pointer-events-none z-10 font-mono whitespace-nowrap">
-                      <div className="font-bold text-emerald-300">{t.date}</div>
-                      <div>Total: {formatIDR(t.total_amount)}</div>
-                      <div className="text-emerald-400">Pasien: {formatIDR(t.patient_amount)}</div>
-                      <div className="text-cyan-400">BPJS: {formatIDR(t.bpjs_amount)}</div>
+                    <div className={`absolute -top-20 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950/95 text-white text-[10px] p-2.5 rounded-xl border border-emerald-500/50 shadow-2xl pointer-events-none z-50 font-mono whitespace-nowrap backdrop-blur-md ${tooltipPosClass}`}>
+                      <div className="font-bold text-emerald-300 mb-0.5 flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                        <span>📅 {t.date}</span>
+                        <span className="text-[9px] text-slate-400">({t.count} transaksi)</span>
+                      </div>
+                      <div className="flex justify-between gap-3 text-slate-200 mt-1">
+                        <span>Total Omzet:</span>
+                        <strong className="text-white font-bold">{formatIDR(t.total_amount)}</strong>
+                      </div>
+                      <div className="flex justify-between gap-3 text-emerald-400">
+                        <span>Mandiri Pasien:</span>
+                        <strong>{formatIDR(t.patient_amount)}</strong>
+                      </div>
+                      <div className="flex justify-between gap-3 text-cyan-400">
+                        <span>BPJS Kesehatan:</span>
+                        <strong>{formatIDR(t.bpjs_amount)}</strong>
+                      </div>
                       {Number(t.insurance_amount || 0) > 0 && (
-                        <div className="text-purple-400">Asuransi Swasta: {formatIDR(t.insurance_amount)}</div>
+                        <div className="flex justify-between gap-3 text-purple-400">
+                          <span>Asuransi Swasta:</span>
+                          <strong>{formatIDR(t.insurance_amount)}</strong>
+                        </div>
                       )}
                     </div>
 
-                    {/* Animated Bar */}
-                    <div className="w-full max-w-[48px] bg-slate-900/80 rounded-t-lg overflow-hidden flex flex-col justify-end h-full p-1 border border-slate-800 group-hover:border-emerald-500/50 transition-colors">
+                    {/* Animated Stacked Bar with Discrete Color Blocks */}
+                    <div className="w-full max-w-[48px] bg-slate-950/60 rounded-t-lg overflow-hidden flex flex-col justify-end h-full p-1 border border-slate-800 group-hover:border-emerald-500/50 transition-colors">
                       <div 
                         style={{ height: `${heightPct}%` }}
-                        className="w-full bg-gradient-to-t from-purple-600 via-cyan-500 to-emerald-400 rounded-t transition-all duration-500"
-                      />
+                        className="w-full flex flex-col justify-end gap-[1px] rounded-t overflow-hidden transition-all duration-500"
+                      >
+                        {/* Segment 3 (Top): Asuransi Swasta (Purple) */}
+                        {insPct > 0 && (
+                          <div 
+                            style={{ height: `${insPct}%` }}
+                            className="w-full bg-purple-600 hover:bg-purple-500 transition-colors"
+                            title={`Asuransi Swasta: ${formatIDR(insVal)}`}
+                          />
+                        )}
+                        {/* Segment 2 (Middle): BPJS Kesehatan (Cyan) */}
+                        {bpjsPct > 0 && (
+                          <div 
+                            style={{ height: `${bpjsPct}%` }}
+                            className="w-full bg-cyan-500 hover:bg-cyan-400 transition-colors"
+                            title={`BPJS Kesehatan: ${formatIDR(bpjsVal)}`}
+                          />
+                        )}
+                        {/* Segment 1 (Bottom): Mandiri Pasien (Emerald) */}
+                        {patPct > 0 && (
+                          <div 
+                            style={{ height: `${patPct}%` }}
+                            className="w-full bg-emerald-500 hover:bg-emerald-400 transition-colors"
+                            title={`Mandiri Pasien: ${formatIDR(patVal)}`}
+                          />
+                        )}
+                      </div>
                     </div>
 
                     {/* Date Label */}
