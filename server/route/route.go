@@ -79,6 +79,11 @@ func SetupRouter() *gin.Engine {
 
 				// Audit Trail System
 				staffOnly.GET("/audit-logs", handlers.GetAuditLogs)
+
+				// BPJS Claim Management (V-Claim Tracker)
+				staffOnly.GET("/claims", handlers.GetBPJSClaims)
+				staffOnly.GET("/claims/summary", handlers.GetClaimSummary)
+				staffOnly.PUT("/claims/:id/status", handlers.UpdateClaimStatus)
 			}
 
 			// Pasien Routes

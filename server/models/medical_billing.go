@@ -20,6 +20,9 @@ type MedicalBilling struct {
 	CashAmount        decimal.Decimal `gorm:"type:decimal(15,2);default:0" json:"cash_amount"`
 	TransferAmount    decimal.Decimal `gorm:"type:decimal(15,2);default:0" json:"transfer_amount"`
 	Status            string          `gorm:"not null;default:'Pending'" json:"status"`
+	BPJSClaimStatus   string          `gorm:"type:varchar(50);default:'UNCLAIMED'" json:"bpjs_claim_status"`
+	BPJSSubmissionDate *time.Time     `json:"bpjs_submission_date,omitempty"`
+	BPJSPaymentDate   *time.Time      `json:"bpjs_payment_date,omitempty"`
 	ProofOfPayment    string          `gorm:"type:text" json:"proof_of_payment,omitempty"`
 	Items             []BillingItem   `gorm:"foreignKey:BillingID" json:"item,omitempty"`
 	CreatedAt         time.Time       `json:"created_at"`

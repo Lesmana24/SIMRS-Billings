@@ -13,6 +13,7 @@ import { UsersPage } from './pages/UsersPage';
 import { MyBillingsPage } from './pages/MyBillingsPage';
 import { AnalyticsDashboard } from './pages/AnalyticsDashboard';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { ClaimsPage } from './pages/ClaimsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import './App.css';
 
@@ -47,6 +48,8 @@ const MainLayout = () => {
         return isStaff ? <AnalyticsDashboard /> : <MyBillingsPage />;
       case 'billings':
         return isStaff ? <BillingsPage /> : <MyBillingsPage />;
+      case 'claims':
+        return isStaff ? <ClaimsPage /> : <MyBillingsPage />;
       case 'tarifs':
         return isStaff ? <TarifsPage /> : <MyBillingsPage />;
       case 'ledgers':

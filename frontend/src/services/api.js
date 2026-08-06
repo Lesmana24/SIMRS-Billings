@@ -223,3 +223,19 @@ export const profileApi = {
   getProfile: () => request('/profile'),
   updateProfile: (payload) => request('/profile', { method: 'PUT', body: payload }),
 };
+
+// ----------------------------------------------------
+// BPJS Claim Management API
+// ----------------------------------------------------
+export const claimsApi = {
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/claims${query ? `?${query}` : ''}`);
+  },
+  getSummary: () => request('/claims/summary'),
+  updateStatus: (id, status) => request(`/claims/${id}/status`, {
+    method: 'PUT',
+    body: { status },
+  }),
+};
+
