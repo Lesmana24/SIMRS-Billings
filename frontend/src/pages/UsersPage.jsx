@@ -4,7 +4,7 @@ import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
 import { Toast } from '../components/ui/Toast';
-import { Search, Edit3, Trash2, Filter, UserPlus } from 'lucide-react';
+import { Search, Edit3, Trash2, Filter, UserPlus, KeyRound } from 'lucide-react';
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -29,6 +29,7 @@ export const UsersPage = () => {
   // Form states for Edit
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('pasien');
+  const [edit2FA, setEdit2FA] = useState('123456');
   const [password, setPassword] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
@@ -76,7 +77,8 @@ export const UsersPage = () => {
         username: createUsername,
         password: createPassword,
         role: createRole,
-        '2fa_pin': create2FA || '123456',
+        two_factor_pin: create2FA || '123456',
+        pin: create2FA || '123456',
       });
 
       setToast({ message: `Akun ${createRole.toUpperCase()} '${createUsername}' berhasil dibuat!`, type: 'success' });
@@ -91,6 +93,7 @@ export const UsersPage = () => {
     setEditUser(u);
     setUsername(u.username);
     setRole(u.role);
+    setEdit2FA(u.two_factor_pin || u.pin || '123456');
     setPassword('');
   };
 
@@ -98,12 +101,22 @@ export const UsersPage = () => {
     e.preventDefault();
     if (!editUser) return;
 
-    const payload = { username, role };
+    if (edit2FA && (edit2FA.length < 4 || edit2FA.length > 6)) {
+      setToast({ message: 'Kode 2FA PIN harus 4-6 digit angka', type: 'error' });
+      return;
+    }
+
+    const payload = {
+      username,
+      role,
+      two_factor_pin: edit2FA,
+      pin: edit2FA,
+    };
     if (password) payload.password = password;
 
     try {
       await userApi.update(editUser.ID || editUser.id, payload);
-      setToast({ message: 'Data pengguna berhasil diperbarui', type: 'success' });
+      setToast({ message: `Data akun '${username}' & 2FA PIN (${edit2FA}) berhasil diperbarui`, type: 'success' });
       setEditUser(null);
       fetchUsers();
     } catch (err) {
@@ -132,9 +145,9 @@ export const UsersPage = () => {
           <h2 className="text-xl font-bold text-white tracking-wide">
             Manajemen Pengguna & Hak Akses
           </h2>
-          <p className="text-xs text-slate-400">Pengelolaan akun administrator, staff kasir, dan pasien terdaftar SIMRS.</p>
+          <p className="text-xs text-slate-400">Pengelolaan akun administrator, staff kasir, 2FA Security PIN, dan pasien terdaftar SIMRS.</p>
         </div>
-        <button onClick={openCreateModal} className="btn btn-primary flex items-center gap-1.5">
+        <button onClick={openCreateModal} className="btn btn-emerald flex items-center gap-1.5">
           <UserPlus size={16} /> Buat Akun Pengguna Baru
         </button>
       </div>
@@ -175,6 +188,7 @@ export const UsersPage = () => {
                 <th>ID Akun</th>
                 <th>Username SIMRS</th>
                 <th>Peran Hak Akses</th>
+                <th>Kode 2FA Security PIN</th>
                 <th>Tanggal Pendaftaran</th>
                 <th className="text-right">Kelola Akun</th>
               </tr>
@@ -182,11 +196,11 @@ export const UsersPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-slate-400 py-8">Memuat pengguna...</td>
+                  <td colSpan={6} className="text-center text-slate-400 py-8">Memuat pengguna...</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
+                  <td colSpan={6} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
                 </tr>
               ) : (
                 users.map((u) => (
@@ -196,6 +210,11 @@ export const UsersPage = () => {
                     <td>
                       <Badge variant={u.role}>{u.role}</Badge>
                     </td>
+                    <td className="font-mono text-xs">
+                      <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-mono tracking-widest font-bold">
+                        🔑 {u.two_factor_pin || u.pin || '123456'}
+                      </span>
+                    </td>
                     <td className="text-xs text-slate-400 font-mono">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
                     </td>
@@ -204,7 +223,7 @@ export const UsersPage = () => {
                         <button
                           onClick={() => openEditModal(u)}
                           className="btn btn-secondary btn-sm p-1.5"
-                          title="Edit User"
+                          title="Edit User & 2FA PIN"
                         >
                           <Edit3 size={14} />
                         </button>
@@ -273,8 +292,9 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">
-              Security PIN 2FA (6 Digit)
+            <label className="block font-semibold uppercase text-slate-300 mb-1 flex items-center justify-between">
+              <span>Security PIN 2FA (6 Digit)</span>
+              <span className="text-[10px] text-emerald-400 font-normal">PIN Otorisasi</span>
             </label>
             <input
               type="text"
@@ -283,15 +303,16 @@ export const UsersPage = () => {
               onChange={(e) => setCreate2FA(e.target.value.replace(/\D/g, ''))}
               placeholder="123456"
               className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold"
+              required
             />
-            <p className="text-[10px] text-slate-400 mt-1">Default PIN 2FA: <code className="text-cyan-300">123456</code></p>
+            <p className="text-[10px] text-slate-400 mt-1">Default PIN 2FA: <code className="text-emerald-300">123456</code></p>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
             <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm">
               Batal
             </button>
-            <button type="submit" className="btn btn-primary btn-sm flex items-center gap-1">
+            <button type="submit" className="btn btn-emerald btn-sm flex items-center gap-1">
               <UserPlus size={14} /> Buat Akun Pengguna
             </button>
           </div>
@@ -299,7 +320,7 @@ export const UsersPage = () => {
       </Modal>
 
       {/* Modal Edit User */}
-      <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title="Edit Data Pengguna">
+      <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title={`Edit Akun #${editUser?.ID || editUser?.id} (${editUser?.username})`}>
         <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block font-semibold uppercase text-slate-300 mb-1">Username</label>
@@ -326,6 +347,25 @@ export const UsersPage = () => {
           </div>
 
           <div>
+            <label className="block font-semibold uppercase text-slate-300 mb-1 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <KeyRound size={13} className="text-emerald-400" /> Kode 2FA Security PIN (6 Digit)
+              </span>
+              <span className="text-[10px] text-emerald-400 font-normal">Otorisasi Kasir</span>
+            </label>
+            <input
+              type="text"
+              maxLength={6}
+              value={edit2FA}
+              onChange={(e) => setEdit2FA(e.target.value.replace(/\D/g, ''))}
+              placeholder="123456"
+              className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold text-emerald-300"
+              required
+            />
+            <p className="text-[10px] text-slate-400 mt-1">PIN 2FA ini digunakan user saat melakukan otorisasi transaksi kasir.</p>
+          </div>
+
+          <div>
             <label className="block font-semibold uppercase text-slate-300 mb-1">
               Reset Password (Opsional)
             </label>
@@ -338,11 +378,11 @@ export const UsersPage = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
             <button type="button" onClick={() => setEditUser(null)} className="btn btn-secondary btn-sm">
               Batal
             </button>
-            <button type="submit" className="btn btn-primary btn-sm">
+            <button type="submit" className="btn btn-emerald btn-sm">
               Simpan Perubahan
             </button>
           </div>
@@ -355,7 +395,7 @@ export const UsersPage = () => {
           <p className="text-slate-300">
             Apakah Anda yakin ingin menghapus akun <strong className="text-white">{deleteUser?.username}</strong>?
           </p>
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
             <button type="button" onClick={() => setDeleteUser(null)} className="btn btn-secondary btn-sm">
               Batal
             </button>

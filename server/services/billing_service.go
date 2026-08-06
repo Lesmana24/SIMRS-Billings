@@ -184,15 +184,16 @@ func ProcessPaymentDetailed(req *ProcessPaymentRequest) (*models.MedicalBilling,
 		cashAmt := req.CashAmount
 		transferAmt := req.TransferAmount
 
-		if method == "SPLIT" {
+		switch method {
+		case "SPLIT":
 			if !cashAmt.Add(transferAmt).Equal(billing.PatientAmount) {
 				return fmt.Errorf("Jumlah pembayaran split (Kasir: Rp %s + Transfer: Rp %s = Rp %s) harus SAMA PERSIS dengan total tagihan bersih (Rp %s)",
 					cashAmt.StringFixed(0), transferAmt.StringFixed(0), cashAmt.Add(transferAmt).StringFixed(0), billing.PatientAmount.StringFixed(0))
 			}
-		} else if method == "CASH" {
+		case "CASH":
 			cashAmt = billing.PatientAmount
 			transferAmt = decimal.Zero
-		} else if method == "TRANSFER" || method == "EDC" {
+		case "TRANSFER", "EDC":
 			transferAmt = billing.PatientAmount
 			cashAmt = decimal.Zero
 		}

@@ -11,13 +11,16 @@ type CreateUserRequest struct {
 	Username     string `json:"username" binding:"required"`
 	Password     string `json:"password" binding:"required"`
 	Role         string `json:"role" binding:"required"`
-	TwoFactorPIN string `json:"2fa_pin"`
+	TwoFactorPIN string `json:"two_factor_pin"`
+	PIN          string `json:"pin"`
 }
 
 type UpdateUserRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	Role         string `json:"role"`
+	TwoFactorPIN string `json:"two_factor_pin"`
+	PIN          string `json:"pin"`
 }
 
 func CreateUser(req *CreateUserRequest) (*models.User, error) {
@@ -32,6 +35,9 @@ func CreateUser(req *CreateUserRequest) (*models.User, error) {
 	}
 
 	pin := req.TwoFactorPIN
+	if pin == "" {
+		pin = req.PIN
+	}
 	if pin == "" {
 		pin = "123456"
 	}
@@ -102,6 +108,17 @@ func UpdateUser(id uint, req *UpdateUserRequest) (*models.User, error) {
 			return nil, errors.New("Gagal meng-hash password baru")
 		}
 		updates["password"] = hashed
+	}
+
+	pinVal := req.TwoFactorPIN
+	if pinVal == "" {
+		pinVal = req.PIN
+	}
+	if pinVal != "" {
+		if len(pinVal) < 4 || len(pinVal) > 6 {
+			return nil, errors.New("Kode 2FA PIN harus 4-6 digit angka")
+		}
+		updates["two_factor_pin"] = pinVal
 	}
 
 	if len(updates) > 0 {
