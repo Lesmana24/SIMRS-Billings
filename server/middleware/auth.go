@@ -13,6 +13,12 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
 		if authHeader == "" {
+			tokenQuery := ctx.Query("token")
+			if tokenQuery != "" {
+				authHeader = "Bearer " + tokenQuery
+			}
+		}
+		if authHeader == "" {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			ctx.Abort()
 			return

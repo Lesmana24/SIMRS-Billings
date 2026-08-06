@@ -191,30 +191,86 @@ export const analyticsApi = {
     const query = new URLSearchParams(params).toString();
     return request(`/analytics/summary${query ? `?${query}` : ''}`);
   },
-  downloadCsv: async (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    const token = localStorage.getItem('simrs_token');
-    const response = await fetch(`${API_BASE_URL}/analytics/export${query ? `?${query}` : ''}`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Gagal mengunduh laporan keuangan');
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Laporan_Kas_SIMRS_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  },
+  downloadExcel: (params = {}) => downloadReport({ ...params, format: 'xlsx' }),
+  downloadCsv: (params = {}) => downloadReport({ ...params, format: 'csv' }),
 };
+
+/**
+ * Shared helper for downloading financial reports (Excel / CSV)
+ */
+async function downloadReport(params = {}) {
+  const token = localStorage.getItem('simrs_token') || '';
+  const queryObj = { ...params };
+  if (token) queryObj.token = token;
+  const query = new URLSearchParams(queryObj).toString();
+  const exportUrl = `${API_BASE_URL}/analytics/export?${query}`;
+
+  const res = await fetch(exportUrl, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: Gagal mengunduh laporan`);
+  }
+
+  const isExcel = params.format === 'xlsx';
+  const ext = isExcel ? 'xlsx' : 'csv';
+  const mimeType = isExcel
+    ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    : 'text/csv;charset=utf-8';
+
+  const year = params.year || new Date().getFullYear();
+  const month = String(params.month || (new Date().getMonth() + 1)).padStart(2, '0');
+  let fileName = `Laporan_Kas_SIMRS_${year}_${month}.${ext}`;
+
+  const cd = res.headers.get('Content-Disposition');
+  if (cd) {
+    const match = cd.match(/filename\*?=(?:UTF-8''|")?([^";\n]+)"?/i);
+    if (match && match[1]) {
+      fileName = decodeURIComponent(match[1].replace(/['"]/g, ''));
+    }
+  }
+
+  const data = isExcel ? await res.arrayBuffer() : ('\uFEFF' + await res.text());
+
+  // 1. Try File System Access API (showSaveFilePicker)
+  if (typeof window.showSaveFilePicker === 'function') {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          {
+            description: isExcel ? 'Excel Spreadsheet (*.xlsx)' : 'CSV Spreadsheet (*.csv)',
+            accept: { [isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv']: [`.${ext}`] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(data);
+      await writable.close();
+      return;
+    } catch (pickerErr) {
+      if (pickerErr.name === 'AbortError') return;
+    }
+  }
+
+  // 2. Fallback anchor download
+  const blob = new Blob([data], { type: mimeType });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+    if (document.body.contains(a)) document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  }, 10000);
+}
 
 // ----------------------------------------------------
 // User Profile API

@@ -75,6 +75,17 @@ export const AnalyticsDashboard = () => {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      await analyticsApi.downloadExcel({ month: selectedMonth, year: selectedYear });
+    } catch (err) {
+      alert(err.message || 'Gagal mengunduh laporan Excel (.xlsx)');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handlePrintPDF = () => {
     if (!data) return;
 
@@ -255,12 +266,23 @@ export const AnalyticsDashboard = () => {
 
         <div className="flex items-center gap-3">
           <button 
+            onClick={handleExportExcel} 
+            disabled={exporting}
+            className="btn btn-emerald btn-sm cursor-pointer shadow-md hover:scale-[1.02] transition-all"
+            title="Ekspor laporan format native Microsoft Excel (.xlsx)"
+          >
+            <Download size={16} />
+            {exporting ? 'Mengolah Excel...' : 'Ekspor Excel (.xlsx)'}
+          </button>
+
+          <button 
             onClick={handleExportCsv} 
             disabled={exporting}
             className="btn btn-secondary btn-sm cursor-pointer"
+            title="Ekspor laporan format CSV UTF-8"
           >
             <Download size={16} className="text-emerald-500" />
-            {exporting ? 'Mengunduh...' : 'Ekspor Laporan Kas (CSV/Excel)'}
+            {exporting ? 'Mengolah CSV...' : 'Ekspor CSV'}
           </button>
 
           <button 

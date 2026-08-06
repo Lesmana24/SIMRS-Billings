@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	"github.com/xuri/excelize/v2"
 )
 
 type PeriodSummary struct {
@@ -264,6 +265,8 @@ func GenerateFinancialReportCSV(month, year int) ([]byte, error) {
 		return nil, err
 	}
 
+	var totalGross, totalBPJS, totalPatient decimal.Decimal
+
 	for _, b := range billings {
 		itemsStr := ""
 		for idx, itm := range b.Items {
@@ -288,6 +291,10 @@ func GenerateFinancialReportCSV(month, year int) ([]byte, error) {
 			method = "CASH"
 		}
 
+		totalGross = totalGross.Add(b.TotalAmount)
+		totalBPJS = totalBPJS.Add(claimVal)
+		totalPatient = totalPatient.Add(b.PatientAmount)
+
 		record := []string{
 			fmt.Sprintf("BILL-%d", b.ID),
 			b.CreatedAt.Format("2006-01-02 15:04:05"),
@@ -307,6 +314,175 @@ func GenerateFinancialReportCSV(month, year int) ([]byte, error) {
 		}
 	}
 
+	// Write empty line and Summary Row
+	writer.Write([]string{})
+	writer.Write([]string{
+		"TOTAL KESELURUHAN",
+		"",
+		"",
+		fmt.Sprintf("Total %d Transaksi Billing", len(billings)),
+		totalGross.StringFixed(0),
+		"",
+		totalBPJS.StringFixed(0),
+		totalPatient.StringFixed(0),
+		"",
+		"",
+		"",
+	})
+
 	writer.Flush()
+	return buf.Bytes(), nil
+}
+
+func GenerateFinancialReportExcel(month, year int) ([]byte, error) {
+	var billings []models.MedicalBilling
+	query := config.DB.Preload("Items")
+
+	if month > 0 && year > 0 {
+		now := time.Now()
+		startOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, now.Location())
+		endOfMonth := startOfMonth.AddDate(0, 1, 0)
+		query = query.Where("created_at >= ? AND created_at < ?", startOfMonth, endOfMonth)
+	}
+
+	err := query.Order("created_at desc").Find(&billings).Error
+	if err != nil {
+		return nil, err
+	}
+
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheetName := "Laporan Kas SIMRS"
+	sheetIdx, err := f.NewSheet(sheetName)
+	if err != nil {
+		return nil, err
+	}
+	f.SetActiveSheet(sheetIdx)
+	_ = f.DeleteSheet("Sheet1")
+
+	// Apply Styles
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"1E293B"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+	})
+
+	titleStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Size: 16, Color: "0F172A"},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+	})
+
+	totalStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "0F172A", Size: 11},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"F1F5F9"}, Pattern: 1},
+		Border: []excelize.Border{
+			{Type: "top", Color: "94A3B8", Style: 1},
+			{Type: "bottom", Color: "94A3B8", Style: 2},
+		},
+	})
+
+	// Write Title Block
+	_ = f.SetCellValue(sheetName, "A1", "LAPORAN KAS & AKUNTANSI SIMRS BILLING ENGINE")
+	_ = f.SetCellStyle(sheetName, "A1", "A1", titleStyle)
+	
+	periodStr := "Semua Periode Transaksi"
+	if month > 0 && year > 0 {
+		periodStr = fmt.Sprintf("Periode: Bulan %d Tahun %d", month, year)
+	}
+	_ = f.SetCellValue(sheetName, "A2", periodStr)
+
+	// Write Table Headers at Row 4
+	headers := []string{
+		"ID Tagihan", "Tanggal Transaksi", "Nama Pasien", "Detail Tindakan Medis",
+		"Total Billing (IDR)", "Penyedia Asuransi", "Subsidi / Klaim Asuransi (IDR)",
+		"Tagihan Bersih Pasien (IDR)", "Metode Pembayaran", "Status", "Bukti Pembayaran",
+	}
+
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 4)
+		_ = f.SetCellValue(sheetName, cell, h)
+	}
+	_ = f.SetCellStyle(sheetName, "A4", "K4", headerStyle)
+	_ = f.SetRowHeight(sheetName, 4, 28)
+
+	// Write Data Rows starting Row 5
+	var totalGross, totalBPJS, totalPatient decimal.Decimal
+	rowIdx := 5
+
+	for _, b := range billings {
+		itemsStr := ""
+		for idx, itm := range b.Items {
+			if idx > 0 {
+				itemsStr += " | "
+			}
+			itemsStr += fmt.Sprintf("%s (%dx Rp %s)", itm.ItemName, itm.Quantity, itm.UnitPrice.StringFixed(0))
+		}
+
+		provider := b.InsuranceProvider
+		if provider == "" {
+			provider = "BPJS Kesehatan"
+		}
+
+		claimVal := b.InsuranceClaim
+		if claimVal.IsZero() {
+			claimVal = b.BPJSAmount
+		}
+
+		method := b.PaymentMethod
+		if method == "" {
+			method = "CASH"
+		}
+
+		totalGross = totalGross.Add(b.TotalAmount)
+		totalBPJS = totalBPJS.Add(claimVal)
+		totalPatient = totalPatient.Add(b.PatientAmount)
+
+		grossFloat, _ := b.TotalAmount.Float64()
+		claimFloat, _ := claimVal.Float64()
+		patientFloat, _ := b.PatientAmount.Float64()
+
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowIdx), fmt.Sprintf("BILL-%d", b.ID))
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowIdx), b.CreatedAt.Format("2006-01-02 15:04:05"))
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowIdx), b.PatientName)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowIdx), itemsStr)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowIdx), grossFloat)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowIdx), provider)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowIdx), claimFloat)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("H%d", rowIdx), patientFloat)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("I%d", rowIdx), method)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("J%d", rowIdx), b.Status)
+		_ = f.SetCellValue(sheetName, fmt.Sprintf("K%d", rowIdx), b.ProofOfPayment)
+
+		rowIdx++
+	}
+
+	// Write Summary Row
+	totGrossFloat, _ := totalGross.Float64()
+	totBPJSFloat, _ := totalBPJS.Float64()
+	totPatientFloat, _ := totalPatient.Float64()
+
+	_ = f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowIdx), "TOTAL KESELURUHAN")
+	_ = f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowIdx), fmt.Sprintf("Total %d Transaksi Billing", len(billings)))
+	_ = f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowIdx), totGrossFloat)
+	_ = f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowIdx), totBPJSFloat)
+	_ = f.SetCellValue(sheetName, fmt.Sprintf("H%d", rowIdx), totPatientFloat)
+
+	_ = f.SetCellStyle(sheetName, fmt.Sprintf("A%d", rowIdx), fmt.Sprintf("K%d", rowIdx), totalStyle)
+
+	// Set Column Widths for clean layout
+	colWidths := map[string]float64{
+		"A": 14, "B": 20, "C": 22, "D": 45, "E": 20,
+		"F": 18, "G": 22, "H": 22, "I": 18, "J": 12, "K": 18,
+	}
+	for col, width := range colWidths {
+		_ = f.SetColWidth(sheetName, col, col, width)
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, err
+	}
+
 	return buf.Bytes(), nil
 }
