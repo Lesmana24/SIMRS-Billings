@@ -4,7 +4,7 @@ import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge } from '../components/ui/Badge';
 import { Toast } from '../components/ui/Toast';
-import { Search, Edit3, Trash2, Filter, UserPlus, KeyRound } from 'lucide-react';
+import { Search, Edit3, Trash2, Filter, UserPlus, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -14,6 +14,7 @@ export const UsersPage = () => {
   const [totalRows, setTotalRows] = useState(0);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [showPinMap, setShowPinMap] = useState({});
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -32,6 +33,10 @@ export const UsersPage = () => {
   const [edit2FA, setEdit2FA] = useState('123456');
   const [password, setPassword] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'success' });
+
+  const togglePinVisibility = (id) => {
+    setShowPinMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -147,7 +152,7 @@ export const UsersPage = () => {
           </h2>
           <p className="text-xs text-slate-400">Pengelolaan akun administrator, staff kasir, 2FA Security PIN, dan pasien terdaftar SIMRS.</p>
         </div>
-        <button onClick={openCreateModal} className="btn btn-emerald flex items-center gap-1.5">
+        <button onClick={openCreateModal} className="btn btn-emerald flex items-center gap-1.5 cursor-pointer">
           <UserPlus size={16} /> Buat Akun Pengguna Baru
         </button>
       </div>
@@ -205,43 +210,60 @@ export const UsersPage = () => {
                   <td colSpan={8} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
                 </tr>
               ) : (
-                users.map((u) => (
-                  <tr key={u.ID || u.id}>
-                    <td className="font-mono text-xs text-slate-400">#USR-{u.ID || u.id}</td>
-                    <td className="font-semibold text-white">@{u.username}</td>
-                    <td className="text-slate-200 font-medium">{u.full_name || <span className="text-slate-500 italic text-xs">- Belum diisi -</span>}</td>
-                    <td className="text-slate-300 font-mono text-xs">{u.phone || <span className="text-slate-500 italic">-</span>}</td>
-                    <td>
-                      <Badge variant={u.role}>{u.role}</Badge>
-                    </td>
-                    <td className="font-mono text-xs">
-                      <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-mono tracking-widest font-bold">
-                        🔑 {u.two_factor_pin || u.pin || '123456'}
-                      </span>
-                    </td>
-                    <td className="text-xs text-slate-400 font-mono">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
-                    </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(u)}
-                          className="btn btn-secondary btn-sm p-1.5"
-                          title="Edit User & 2FA PIN"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteUser(u)}
-                          className="btn btn-danger btn-sm p-1.5"
-                          title="Hapus User"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                users.map((u) => {
+                  const uid = u.ID || u.id;
+                  const isRevealed = !!showPinMap[uid];
+                  const pinVal = u.two_factor_pin || u.pin || '123456';
+
+                  return (
+                    <tr key={uid}>
+                      <td className="font-mono text-xs text-slate-400">#USR-{uid}</td>
+                      <td className="font-semibold text-white">@{u.username}</td>
+                      <td className="text-slate-200 font-medium">{u.full_name || <span className="text-slate-500 italic text-xs">- Belum diisi -</span>}</td>
+                      <td className="text-slate-300 font-mono text-xs">{u.phone || <span className="text-slate-500 italic">-</span>}</td>
+                      <td>
+                        <Badge variant={u.role}>{u.role}</Badge>
+                      </td>
+                      <td>
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 shadow-sm transition-all duration-200 hover:border-emerald-500/50">
+                          <KeyRound size={13} className="text-emerald-400 shrink-0" />
+                          <span className="font-mono text-xs font-bold tracking-wider select-all">
+                            {isRevealed ? pinVal : '••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePinVisibility(uid)}
+                            className="text-slate-400 hover:text-emerald-300 transition-colors p-0.5 ml-0.5 cursor-pointer rounded hover:bg-emerald-900/40"
+                            title={isRevealed ? "Sembunyikan Kode PIN" : "Lihat Kode PIN"}
+                          >
+                            {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="text-xs text-slate-400 font-mono">
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
+                      </td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(u)}
+                            className="btn btn-secondary btn-sm p-1.5 cursor-pointer"
+                            title="Edit User & 2FA PIN"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteUser(u)}
+                            className="btn btn-danger btn-sm p-1.5 cursor-pointer"
+                            title="Hapus User"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -313,10 +335,10 @@ export const UsersPage = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm">
+            <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="btn btn-emerald btn-sm flex items-center gap-1">
+            <button type="submit" className="btn btn-emerald btn-sm flex items-center gap-1 cursor-pointer">
               <UserPlus size={14} /> Buat Akun Pengguna
             </button>
           </div>
@@ -383,10 +405,10 @@ export const UsersPage = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button type="button" onClick={() => setEditUser(null)} className="btn btn-secondary btn-sm">
+            <button type="button" onClick={() => setEditUser(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="btn btn-emerald btn-sm">
+            <button type="submit" className="btn btn-emerald btn-sm cursor-pointer">
               Simpan Perubahan
             </button>
           </div>
@@ -400,10 +422,10 @@ export const UsersPage = () => {
             Apakah Anda yakin ingin menghapus akun <strong className="text-white">{deleteUser?.username}</strong>?
           </p>
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button type="button" onClick={() => setDeleteUser(null)} className="btn btn-secondary btn-sm">
+            <button type="button" onClick={() => setDeleteUser(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="button" onClick={handleDelete} className="btn btn-danger btn-sm">
+            <button type="button" onClick={handleDelete} className="btn btn-danger btn-sm cursor-pointer">
               Ya, Hapus Pengguna
             </button>
           </div>
