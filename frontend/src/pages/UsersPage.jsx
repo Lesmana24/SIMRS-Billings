@@ -187,6 +187,8 @@ export const UsersPage = () => {
               <tr>
                 <th>ID Akun</th>
                 <th>Username SIMRS</th>
+                <th>Nama Lengkap</th>
+                <th>Kontak / No. HP</th>
                 <th>Peran Hak Akses</th>
                 <th>Kode 2FA Security PIN</th>
                 <th>Tanggal Pendaftaran</th>
@@ -196,17 +198,19 @@ export const UsersPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-slate-400 py-8">Memuat pengguna...</td>
+                  <td colSpan={8} className="text-center text-slate-400 py-8">Memuat pengguna...</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
+                  <td colSpan={8} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
                 </tr>
               ) : (
                 users.map((u) => (
                   <tr key={u.ID || u.id}>
                     <td className="font-mono text-xs text-slate-400">#USR-{u.ID || u.id}</td>
-                    <td className="font-semibold text-white">{u.username}</td>
+                    <td className="font-semibold text-white">@{u.username}</td>
+                    <td className="text-slate-200 font-medium">{u.full_name || <span className="text-slate-500 italic text-xs">- Belum diisi -</span>}</td>
+                    <td className="text-slate-300 font-mono text-xs">{u.phone || <span className="text-slate-500 italic">-</span>}</td>
                     <td>
                       <Badge variant={u.role}>{u.role}</Badge>
                     </td>

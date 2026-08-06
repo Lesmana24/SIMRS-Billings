@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   ChevronRight,
   BarChart3,
-  X
+  X,
+  User
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
@@ -29,8 +30,10 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     { id: 'ledgers', label: 'Jurnal Mutasi Kas', icon: BookOpen },
     { id: 'audit-logs', label: 'Audit Trail System', icon: ShieldAlert },
     ...(isAdmin ? [{ id: 'users', label: 'Manajemen Pengguna', icon: Users }] : []),
+    { id: 'profile', label: 'Pengaturan Profil', icon: User },
   ] : [
     { id: 'my-billings', label: 'Tagihan Layanan Saya', icon: Receipt },
+    { id: 'profile', label: 'Pengaturan Profil', icon: User },
   ];
 
   return (

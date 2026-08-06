@@ -19,8 +19,24 @@ type UpdateUserRequest struct {
 	Username     string `json:"username"`
 	Password     string `json:"password"`
 	Role         string `json:"role"`
+	FullName     string `json:"full_name"`
+	Email        string `json:"email"`
+	Phone        string `json:"phone"`
+	Address      string `json:"address"`
+	NIK          string `json:"nik"`
 	TwoFactorPIN string `json:"two_factor_pin"`
 	PIN          string `json:"pin"`
+}
+
+type UpdateProfileRequest struct {
+	FullName        string `json:"full_name"`
+	Email           string `json:"email"`
+	Phone           string `json:"phone"`
+	Address         string `json:"address"`
+	NIK             string `json:"nik"`
+	NewPassword     string `json:"new_password"`
+	ConfirmPassword string `json:"confirm_password"`
+	TwoFactorPIN    string `json:"two_factor_pin"`
 }
 
 func CreateUser(req *CreateUserRequest) (*models.User, error) {
@@ -62,7 +78,7 @@ func GetUsers(search, roleFilter string, page, limit int) ([]models.User, utils.
 
 	query := config.DB.Model(&models.User{})
 	if search != "" {
-		query = query.Where("username ILIKE ?", "%"+search+"%")
+		query = query.Where("username ILIKE ? OR full_name ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 	if roleFilter != "" {
 		query = query.Where("role = ?", roleFilter)
@@ -102,6 +118,21 @@ func UpdateUser(id uint, req *UpdateUserRequest) (*models.User, error) {
 	if req.Role != "" {
 		updates["role"] = req.Role
 	}
+	if req.FullName != "" {
+		updates["full_name"] = req.FullName
+	}
+	if req.Email != "" {
+		updates["email"] = req.Email
+	}
+	if req.Phone != "" {
+		updates["phone"] = req.Phone
+	}
+	if req.Address != "" {
+		updates["address"] = req.Address
+	}
+	if req.NIK != "" {
+		updates["nik"] = req.NIK
+	}
 	if req.Password != "" {
 		hashed, err := utils.HashPassword(req.Password)
 		if err != nil {
@@ -119,6 +150,50 @@ func UpdateUser(id uint, req *UpdateUserRequest) (*models.User, error) {
 			return nil, errors.New("Kode 2FA PIN harus 4-6 digit angka")
 		}
 		updates["two_factor_pin"] = pinVal
+	}
+
+	if len(updates) > 0 {
+		if err := config.DB.Model(user).Updates(updates).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return user, nil
+}
+
+func UpdateProfile(id uint, req *UpdateProfileRequest) (*models.User, error) {
+	user, err := GetUserByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	updates := map[string]interface{}{
+		"full_name": req.FullName,
+		"email":     req.Email,
+		"phone":     req.Phone,
+		"address":   req.Address,
+		"nik":       req.NIK,
+	}
+
+	if req.NewPassword != "" {
+		if req.ConfirmPassword != "" && req.NewPassword != req.ConfirmPassword {
+			return nil, errors.New("Konfirmasi password baru tidak cocok (tulis ulang password berbeda)")
+		}
+		if len(req.NewPassword) < 6 {
+			return nil, errors.New("Password baru minimal harus 6 karakter")
+		}
+		hashed, err := utils.HashPassword(req.NewPassword)
+		if err != nil {
+			return nil, errors.New("Gagal meng-hash password baru")
+		}
+		updates["password"] = hashed
+	}
+
+	if req.TwoFactorPIN != "" {
+		if len(req.TwoFactorPIN) < 4 || len(req.TwoFactorPIN) > 6 {
+			return nil, errors.New("Kode 2FA PIN harus 4-6 digit angka")
+		}
+		updates["two_factor_pin"] = req.TwoFactorPIN
 	}
 
 	if len(updates) > 0 {

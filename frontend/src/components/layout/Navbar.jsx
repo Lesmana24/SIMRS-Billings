@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../ui/Badge';
 import { LogOut, Menu, Hospital } from 'lucide-react';
 
-export const Navbar = ({ onToggleSidebar }) => {
+export const Navbar = ({ onToggleSidebar, onOpenProfile }) => {
   const { username, role, logout } = useAuth();
 
   return (
@@ -31,13 +31,19 @@ export const Navbar = ({ onToggleSidebar }) => {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-semibold text-slate-200">{username}</p>
-              <Badge variant={role}>{role}</Badge>
-            </div>
-            <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs flex items-center justify-center border border-emerald-600/50">
-              {username ? username[0].toUpperCase() : 'U'}
-            </div>
+            <button 
+              onClick={onOpenProfile}
+              className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-slate-900 transition-colors text-left group cursor-pointer"
+              title="Pengaturan Profil Akun"
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-slate-200 group-hover:text-emerald-400 transition-colors">{username}</p>
+                <Badge variant={role}>{role}</Badge>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs flex items-center justify-center border border-emerald-600/50 group-hover:border-emerald-400 transition-colors">
+                {username ? username[0].toUpperCase() : 'U'}
+              </div>
+            </button>
             <button
               onClick={logout}
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"

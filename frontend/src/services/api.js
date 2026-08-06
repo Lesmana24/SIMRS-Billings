@@ -215,3 +215,11 @@ export const analyticsApi = {
     document.body.removeChild(a);
   },
 };
+
+// ----------------------------------------------------
+// User Profile API
+// ----------------------------------------------------
+export const profileApi = {
+  getProfile: () => request('/profile'),
+  updateProfile: (payload) => request('/profile', { method: 'PUT', body: payload }),
+};

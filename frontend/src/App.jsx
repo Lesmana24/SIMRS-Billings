@@ -12,6 +12,7 @@ import { UsersPage } from './pages/UsersPage';
 import { MyBillingsPage } from './pages/MyBillingsPage';
 import { AnalyticsDashboard } from './pages/AnalyticsDashboard';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { ProfilePage } from './pages/ProfilePage';
 import './App.css';
 
 const MainLayout = () => {
@@ -53,6 +54,8 @@ const MainLayout = () => {
         return isStaff ? <AuditLogPage /> : <MyBillingsPage />;
       case 'users':
         return isAdmin ? <UsersPage /> : <Dashboard onNavigate={(tab) => setActiveTab(tab)} />;
+      case 'profile':
+        return <ProfilePage />;
       case 'my-billings':
       default:
         return isPasien ? <MyBillingsPage /> : <Dashboard onNavigate={(tab) => setActiveTab(tab)} />;
@@ -61,7 +64,10 @@ const MainLayout = () => {
 
   return (
     <div className="h-screen w-screen bg-[#0b0f19] flex flex-col font-sans text-gray-100 antialiased overflow-hidden">
-      <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar 
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+        onOpenProfile={() => setActiveTab('profile')}
+      />
       <div className="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden">
         <Sidebar
           activeTab={activeTab}

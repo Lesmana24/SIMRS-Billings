@@ -146,3 +146,57 @@ func DeleteUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User berhasil dihapus"})
 }
+
+func GetMyProfile(c *gin.Context) {
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sesi pengguna tidak valid"})
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": user})
+}
+
+func UpdateMyProfile(c *gin.Context) {
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sesi pengguna tidak valid"})
+		return
+	}
+
+	var req services.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := services.UpdateProfile(userID, &req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRole := c.GetString("role")
+	services.RecordAuditLog(
+		userID,
+		user.Username,
+		userRole,
+		"UPDATE_PROFILE",
+		fmt.Sprintf("User #%d", user.ID),
+		fmt.Sprintf("Pengguna '%s' memperbarui informasi profil diri", user.Username),
+		c.ClientIP(),
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profil pengguna berhasil diperbarui!",
+		"data":    user,
+	})
+}

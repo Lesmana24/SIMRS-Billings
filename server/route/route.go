@@ -35,6 +35,10 @@ func SetupRouter() *gin.Engine {
 		authenticated := api.Group("")
 		authenticated.Use(middleware.AuthMiddleware())
 		{
+			// User Profile Routes (All authenticated roles)
+			authenticated.GET("/profile", handlers.GetMyProfile)
+			authenticated.PUT("/profile", handlers.UpdateMyProfile)
+
 			// Submit proof route (Admin, Staff, Pasien)
 			authenticated.POST("/billings/:id/submit-proof", middleware.RequireRole("admin", "staff", "pasien"), handlers.SubmitProof)
 
