@@ -10,10 +10,10 @@ export const Badge = ({ children, variant = 'default', className = '' }) => {
         return 'badge-pending';
       case 'waiting_verification':
       case 'verifikasi':
-        return 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30';
+        return 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30';
       case 'rejected':
       case 'ditolak':
-        return 'bg-rose-500/15 text-rose-400 border border-rose-500/30';
+        return 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30';
       case 'admin':
         return 'badge-admin';
       case 'staff':
@@ -23,7 +23,7 @@ export const Badge = ({ children, variant = 'default', className = '' }) => {
       case 'debit':
         return 'badge-paid';
       default:
-        return 'bg-gray-800 text-gray-300 border border-gray-700';
+        return 'bg-[var(--bg-subtle)] text-[var(--text-primary)] border border-[var(--border-color)]';
     }
   };
 

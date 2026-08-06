@@ -25,14 +25,14 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' 
       onClick={onClose}
     >
       <div 
-        className={`glass-modal w-full ${maxWidth} max-h-[85vh] p-6 relative flex flex-col border border-white/20 shadow-2xl overflow-hidden my-auto`}
+        className={`glass-modal w-full ${maxWidth} max-h-[85vh] p-6 relative flex flex-col shadow-2xl overflow-hidden my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10 shrink-0">
-          <h3 className="text-lg font-bold text-white tracking-wide">{title}</h3>
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[var(--border-color)] shrink-0">
+          <h3 className="text-lg font-bold text-[var(--text-heading)] tracking-wide">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
             aria-label="Tutup Dialog"
           >
             <X size={20} />

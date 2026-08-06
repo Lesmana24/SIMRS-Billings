@@ -57,12 +57,12 @@ export const LedgersPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide">
+          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
             Jurnal Mutasi Kas SIMRS
           </h2>
-          <p className="text-xs text-slate-400">Buku kas permanen pencatatan mutasi penerimaan pembayaran tagihan medis.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Buku kas permanen pencatatan mutasi penerimaan pembayaran tagihan medis.</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-xs">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
           <ShieldCheck size={15} /> Audit Trail Idempotency Active
         </div>
       </div>
@@ -70,7 +70,7 @@ export const LedgersPage = () => {
       {/* Control Panel */}
       <div className="glass-panel p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} />
           <input
             type="text"
             value={search}
@@ -99,33 +99,33 @@ export const LedgersPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-400 py-8">Memuat mutasi kas...</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-8">Memuat mutasi kas...</td>
                 </tr>
               ) : ledgers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-400 py-8">Tidak ada jurnal mutasi kas ditemukan.</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-8">Tidak ada jurnal mutasi kas ditemukan.</td>
                 </tr>
               ) : (
                 ledgers.map((l) => (
                   <tr key={l.ID || l.id}>
-                    <td className="font-mono text-xs text-slate-400">#LDG-{l.ID || l.id}</td>
-                    <td className="font-mono text-xs font-semibold text-slate-200">#BILL-{l.billing_id || l.medical_billing_id || l.BillingID || l.id}</td>
+                    <td className="font-mono text-xs text-[var(--text-secondary)]">#LDG-{l.ID || l.id}</td>
+                    <td className="font-mono text-xs font-semibold text-[var(--text-primary)]">#BILL-{l.billing_id || l.medical_billing_id || l.BillingID || l.id}</td>
                     <td>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 font-semibold">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
                         <ArrowDownRight size={13} /> {l.entry_type || l.type || 'DEBIT'}
                       </span>
                     </td>
-                    <td className="text-xs text-slate-200">{l.description}</td>
-                    <td className="font-mono text-xs font-bold text-white">
+                    <td className="text-xs text-[var(--text-heading)]">{l.description}</td>
+                    <td className="font-mono text-xs font-bold text-[var(--text-heading)]">
                       Rp {(l.amount || 0).toLocaleString('id-ID')}
                     </td>
-                    <td className="text-xs text-slate-400 font-mono">
+                    <td className="text-xs text-[var(--text-secondary)] font-mono">
                       {l.created_at ? new Date(l.created_at).toLocaleString('id-ID') : '-'}
                     </td>
                     <td className="text-right">
                       <button
                         onClick={() => setDeleteLedger(l)}
-                        className="btn btn-danger btn-sm p-1.5"
+                        className="btn btn-danger btn-sm p-1.5 cursor-pointer"
                         title="Hapus Mutasi Ledger"
                       >
                         <Trash2 size={14} />
@@ -149,14 +149,14 @@ export const LedgersPage = () => {
       {/* Modal Delete Ledger */}
       <Modal isOpen={!!deleteLedger} onClose={() => setDeleteLedger(null)} title="Konfirmasi Hapus Mutasi Ledger">
         <div className="space-y-3 text-xs">
-          <p className="text-slate-300">
-            Apakah Anda yakin ingin menghapus mutasi pembukuan <strong className="text-white">#LDG-{deleteLedger?.ID || deleteLedger?.id}</strong>?
+          <p className="text-[var(--text-primary)]">
+            Apakah Anda yakin ingin menghapus mutasi pembukuan <strong className="text-[var(--text-heading)]">#LDG-{deleteLedger?.ID || deleteLedger?.id}</strong>?
           </p>
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
-            <button type="button" onClick={() => setDeleteLedger(null)} className="btn btn-secondary btn-sm">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
+            <button type="button" onClick={() => setDeleteLedger(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="button" onClick={handleDelete} className="btn btn-danger btn-sm">
+            <button type="button" onClick={handleDelete} className="btn btn-danger btn-sm cursor-pointer">
               Ya, Hapus Mutasi
             </button>
           </div>

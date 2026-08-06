@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { Login } from './pages/Login';
@@ -63,7 +64,7 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#0b0f19] flex flex-col font-sans text-gray-100 antialiased overflow-hidden">
+    <div className="h-screen w-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col font-sans antialiased overflow-hidden transition-colors duration-200">
       <Navbar 
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
         onOpenProfile={() => setActiveTab('profile')}
@@ -85,8 +86,10 @@ const MainLayout = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainLayout />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <MainLayout />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

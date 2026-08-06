@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { profileApi } from '../services/api';
 import { Toast } from '../components/ui/Toast';
-import { User, Lock, ShieldCheck, Mail, Phone, MapPin, CreditCard, Save, RefreshCw, KeyRound } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { User, Lock, Mail, Phone, MapPin, CreditCard, Save, RefreshCw, KeyRound, Sun, Moon, Monitor } from 'lucide-react';
 
 export const ProfilePage = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' });
+  const { theme, hasCustomPreference, setThemeExplicitly } = useTheme();
 
   // Form fields
   const [fullName, setFullName] = useState('');
@@ -95,8 +97,8 @@ export const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-slate-400">
-        <RefreshCw size={24} className="animate-spin text-emerald-400 mr-2" />
+      <div className="flex items-center justify-center min-h-[400px] text-[var(--text-secondary)]">
+        <RefreshCw size={24} className="animate-spin text-emerald-500 mr-2" />
         Memuat profil pengguna...
       </div>
     );
@@ -113,22 +115,22 @@ export const ProfilePage = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 border border-emerald-500/20 bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/30">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 border border-emerald-500/20 bg-gradient-to-r from-[var(--bg-card)] via-[var(--bg-card)] to-emerald-900/10">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-extrabold text-2xl shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-extrabold text-2xl shadow-md">
             {profile?.username ? profile.username.substring(0, 2).toUpperCase() : 'US'}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-extrabold text-white tracking-wide">
+              <h2 className="text-2xl font-extrabold text-[var(--text-heading)] tracking-wide">
                 {profile?.full_name || profile?.username}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-950 text-emerald-400 border border-emerald-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                 {profile?.role}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-mono mt-1">
-              Username: <span className="text-emerald-300 font-bold">@{profile?.username}</span> • ID Akun: #USR-{profile?.ID || profile?.id}
+            <p className="text-xs text-[var(--text-secondary)] font-mono mt-1">
+              Username: <span className="text-emerald-600 dark:text-emerald-300 font-bold">@{profile?.username}</span> • ID Akun: #USR-{profile?.ID || profile?.id}
             </p>
           </div>
         </div>
@@ -138,28 +140,28 @@ export const ProfilePage = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Informasi Data Diri */}
         <div className="glass-panel p-6 space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <User className="text-emerald-400" size={18} /> Data Diri & Informasi Kontak
+          <h3 className="text-base font-bold text-[var(--text-heading)] flex items-center gap-2 border-b border-[var(--border-color)] pb-3">
+            <User className="text-emerald-500" size={18} /> Data Diri & Informasi Kontak
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Username (Read Only) */}
             <div>
-              <label className="form-label">Username SIMRS (Dipakai Login)</label>
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 block">Username SIMRS (Dipakai Login)</label>
               <div className="relative">
                 <input
                   type="text"
                   value={profile?.username || ''}
                   disabled
-                  className="glass-input bg-slate-950/80 text-slate-400 cursor-not-allowed font-mono font-bold"
+                  className="glass-input bg-[var(--bg-subtle)] text-[var(--text-secondary)] cursor-not-allowed font-mono font-bold"
                 />
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">* Username bersifat permanen untuk login akun.</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">* Username bersifat permanen untuk login akun.</p>
             </div>
 
             {/* Nama Lengkap */}
             <div>
-              <label className="form-label">Nama Lengkap Sesuai KTP</label>
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 block">Nama Lengkap Sesuai KTP</label>
               <input
                 type="text"
                 value={fullName}
@@ -171,8 +173,8 @@ export const ProfilePage = () => {
 
             {/* Email */}
             <div>
-              <label className="form-label flex items-center gap-1.5">
-                <Mail size={14} className="text-cyan-400" /> Alamat Email
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 flex items-center gap-1.5">
+                <Mail size={14} className="text-cyan-500" /> Alamat Email
               </label>
               <input
                 type="email"
@@ -185,8 +187,8 @@ export const ProfilePage = () => {
 
             {/* No. HP / WhatsApp */}
             <div>
-              <label className="form-label flex items-center gap-1.5">
-                <Phone size={14} className="text-emerald-400" /> No. Telepon / WhatsApp
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 flex items-center gap-1.5">
+                <Phone size={14} className="text-emerald-500" /> No. Telepon / WhatsApp
               </label>
               <input
                 type="text"
@@ -199,8 +201,8 @@ export const ProfilePage = () => {
 
             {/* NIK KTP */}
             <div className="md:col-span-2">
-              <label className="form-label flex items-center gap-1.5">
-                <CreditCard size={14} className="text-amber-400" /> NIK (Nomor Induk Kependudukan)
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 flex items-center gap-1.5">
+                <CreditCard size={14} className="text-amber-500" /> NIK (Nomor Induk Kependudukan)
               </label>
               <input
                 type="text"
@@ -213,8 +215,8 @@ export const ProfilePage = () => {
 
             {/* Alamat Tempat Tinggal */}
             <div className="md:col-span-2">
-              <label className="form-label flex items-center gap-1.5">
-                <MapPin size={14} className="text-purple-400" /> Alamat Lengkap
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 flex items-center gap-1.5">
+                <MapPin size={14} className="text-purple-500" /> Alamat Lengkap
               </label>
               <textarea
                 value={address}
@@ -229,17 +231,16 @@ export const ProfilePage = () => {
 
         {/* Section 2: Keamanan & Ganti Password */}
         <div className="glass-panel p-6 space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Lock className="text-cyan-400" size={18} /> Pengaturan Kata Sandi (Password Baru)
+          <h3 className="text-base font-bold text-[var(--text-heading)] flex items-center gap-2 border-b border-[var(--border-color)] pb-3">
+            <Lock className="text-cyan-500" size={18} /> Pengaturan Kata Sandi (Password Baru)
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--text-secondary)]">
             Kosongkan kolom password jika Anda tidak ingin mengubah password akun Anda.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Kolom Atas: Password Baru */}
             <div>
-              <label className="form-label">Password Baru</label>
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 block">Password Baru</label>
               <input
                 type="password"
                 value={newPassword}
@@ -249,9 +250,8 @@ export const ProfilePage = () => {
               />
             </div>
 
-            {/* Kolom Bawah: Verifikasi Password Baru (Tulis Ulang) */}
             <div>
-              <label className="form-label">Verifikasi Password Baru (Tulis Ulang)</label>
+              <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 block">Verifikasi Password Baru (Tulis Ulang)</label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -265,23 +265,71 @@ export const ProfilePage = () => {
 
         {/* Section 3: Kode Otorisasi 2FA PIN */}
         <div className="glass-panel p-6 space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <KeyRound className="text-amber-400" size={18} /> Kode Otorisasi 2FA Security PIN
+          <h3 className="text-base font-bold text-[var(--text-heading)] flex items-center gap-2 border-b border-[var(--border-color)] pb-3">
+            <KeyRound className="text-amber-500" size={18} /> Kode Otorisasi 2FA Security PIN
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--text-secondary)]">
             Kode PIN 6 digit digunakan untuk otorisasi transaksi kasir dan tindakan penting pada SIMRS Billing.
           </p>
 
           <div className="max-w-xs">
-            <label className="form-label">Kode 2FA Security PIN (4-6 Digit)</label>
+            <label className="form-label text-[var(--text-secondary)] text-xs font-semibold uppercase mb-1 block">Kode 2FA Security PIN (4-6 Digit)</label>
             <input
               type="text"
               maxLength={6}
               value={twoFactorPin}
               onChange={(e) => setTwoFactorPin(e.target.value.replace(/\D/g, ''))}
               placeholder="Contoh: 123456"
-              className="glass-input font-mono tracking-widest text-center text-lg font-bold text-emerald-400"
+              className="glass-input font-mono tracking-widest text-center text-lg font-bold text-emerald-600 dark:text-emerald-400"
             />
+          </div>
+        </div>
+
+        {/* Section 4: Pengaturan Tema Tampilan */}
+        <div className="glass-panel p-6 space-y-4">
+          <h3 className="text-base font-bold text-[var(--text-heading)] flex items-center gap-2 border-b border-[var(--border-color)] pb-3">
+            <Sun className="text-amber-500" size={18} /> Tema Tampilan Aplikasi (Light / Dark)
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Aplikasi otomatis mengadopsi tema sistem perangkat pada awal akses. Pilihan baru disimpan secara lokal di browser.
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setThemeExplicitly('dark')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                theme === 'dark' && hasCustomPreference
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500 shadow-md'
+                  : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--border-strong)]'
+              }`}
+            >
+              <Moon size={16} className="text-amber-400" /> Tema Gelap (Dark Mode)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setThemeExplicitly('light')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                theme === 'light' && hasCustomPreference
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500 shadow-md'
+                  : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--border-strong)]'
+              }`}
+            >
+              <Sun size={16} className="text-amber-500" /> Tema Terang (Light Mode)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setThemeExplicitly('system')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                !hasCustomPreference
+                  ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500 shadow-md'
+                  : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--border-strong)]'
+              }`}
+            >
+              <Monitor size={16} className="text-cyan-500" /> Ikuti Sistem Perangkat (Auto OS)
+            </button>
           </div>
         </div>
 
@@ -290,7 +338,7 @@ export const ProfilePage = () => {
           <button
             type="submit"
             disabled={saving}
-            className="btn btn-emerald btn-lg px-8 flex items-center gap-2 font-bold shadow-lg shadow-emerald-900/30"
+            className="btn btn-emerald btn-lg px-8 flex items-center gap-2 font-bold shadow-lg cursor-pointer"
           >
             <Save size={18} />
             {saving ? 'Menyimpan Perubahan...' : 'Simpan Perubahan Profil'}

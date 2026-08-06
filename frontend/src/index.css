@@ -1,28 +1,67 @@
 @import "tailwindcss";
 
-:root {
-  --bg-dark: #090d16;
-  --bg-card: #111827;
-  --bg-card-hover: #1f2937;
+/* -------------------------------------------------------------------------- */
+/* SIMRS BILLING DESIGN SYSTEM - SEMANTIC DESIGN TOKENS                       */
+/* -------------------------------------------------------------------------- */
+
+:root,
+html[data-theme="dark"],
+html.dark {
+  color-scheme: dark;
+
+  /* Dark Theme Palette (Sleek Medical Slate Cyan) */
+  --bg-app: #090d16;
+  --bg-header: rgba(15, 23, 42, 0.95);
+  --bg-sidebar: #090d16;
+  --bg-panel: rgba(17, 24, 39, 0.85);
+  --bg-card: rgba(17, 24, 39, 0.7);
+  --bg-card-hover: rgba(31, 41, 55, 0.8);
   --bg-input: #0f172a;
+  --bg-table-header: #0f172a;
+  --bg-table-container: rgba(15, 20, 30, 0.6);
+  --bg-table-row-hover: rgba(255, 255, 255, 0.03);
+  --bg-modal: #0f172a;
+  --bg-subtle: #1e293b;
+
   --border-color: #1e293b;
   --border-strong: #334155;
 
-  --text-primary: #f8fafc;
+  --text-heading: #f8fafc;
+  --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-
-  --accent-primary: #10b981;
-  --accent-emerald: #10b981;
-  --accent-amber: #d97706;
-  --accent-rose: #e11d48;
-  --accent-cyan: #14b8a6;
 
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   font-family: var(--font-sans);
-  color-scheme: dark;
+}
+
+html[data-theme="light"],
+html.light {
+  color-scheme: light;
+
+  /* Light Theme Palette (Ultra-Clean Crisp Clinical Medical Light) */
+  --bg-app: #f4f6f9;
+  --bg-header: rgba(255, 255, 255, 0.95);
+  --bg-sidebar: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-card: #f8fafc;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --bg-table-header: #f8fafc;
+  --bg-table-container: #ffffff;
+  --bg-table-row-hover: #f1f5f9;
+  --bg-modal: #ffffff;
+  --bg-subtle: #e2e8f0;
+
+  --border-color: #cbd5e1;
+  --border-strong: #94a3b8;
+
+  --text-heading: #0f172a;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
 }
 
 * {
@@ -34,12 +73,13 @@ html {
 }
 
 body {
-  background-color: var(--bg-dark);
+  background-color: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Custom Scrollbar */
@@ -48,43 +88,44 @@ body {
   height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-dark);
+  background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--border-strong);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--text-muted);
 }
 
-/* Glassmorphism Primitives */
+/* Glassmorphism & Card Primitives */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--bg-panel);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
 }
 
 .glass-card {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--bg-card);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .glass-card:hover {
   border-color: var(--border-strong);
+  background-color: var(--bg-card-hover);
 }
 
 .glass-modal {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--bg-modal);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .glass-input {
@@ -128,40 +169,31 @@ body {
   text-decoration: none;
 }
 
-.btn-primary {
-  background-color: #059669;
-  color: #ffffff;
-  border-color: #10b981;
-}
-
-.btn-primary:hover {
-  background-color: #047857;
-}
-
+.btn-primary,
 .btn-emerald {
   background-color: #059669;
   color: #ffffff;
   border-color: #10b981;
 }
 
+.btn-primary:hover,
 .btn-emerald:hover {
   background-color: #047857;
 }
 
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
   border-color: var(--border-color);
 }
 
 .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background-color: var(--border-strong);
 }
 
 .btn-danger {
   background-color: rgba(225, 29, 72, 0.12);
-  color: #f43f5e;
+  color: #e11d48;
   border-color: rgba(225, 29, 72, 0.3);
 }
 
@@ -190,41 +222,56 @@ body {
 
 .badge-paid {
   background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+html.dark .badge-paid {
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .badge-pending {
   background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+}
+html.dark .badge-pending {
   color: #fbbf24;
-  border: 1px solid rgba(217, 119, 6, 0.25);
 }
 
 .badge-admin {
   background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+html.dark .badge-admin {
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .badge-staff {
   background: rgba(20, 184, 166, 0.12);
+  color: #0d9488;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+html.dark .badge-staff {
   color: #2dd4bf;
-  border: 1px solid rgba(20, 184, 166, 0.25);
 }
 
 .badge-pasien {
   background: rgba(225, 29, 72, 0.12);
+  color: #e11d48;
+  border: 1px solid rgba(225, 29, 72, 0.3);
+}
+html.dark .badge-pasien {
   color: #fda4af;
-  border: 1px solid rgba(225, 29, 72, 0.25);
 }
 
-/* Table */
+/* Table System */
 .table-container {
   width: 100%;
   overflow-x: auto;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  background: rgba(15, 20, 30, 0.6);
+  background: var(--bg-table-container);
 }
 
 .table {
@@ -235,8 +282,8 @@ body {
 }
 
 .table th {
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--bg-table-header);
+  color: var(--text-secondary);
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.7rem;
@@ -248,7 +295,7 @@ body {
 .table td {
   padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--border-color);
-  color: #e2e8f0;
+  color: var(--text-primary);
   vertical-align: middle;
 }
 
@@ -257,7 +304,7 @@ body {
 }
 
 .table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.025);
+  background-color: var(--bg-table-row-hover);
 }
 
 .table tbody tr:last-child td {
@@ -323,7 +370,6 @@ body {
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Shimmer Button Effect */
 .btn-shimmer {
   position: relative;
   overflow: hidden;
@@ -348,5 +394,3 @@ body {
 .btn-shimmer:hover::after {
   animation: shimmer 1s ease-in-out infinite;
 }
-
-

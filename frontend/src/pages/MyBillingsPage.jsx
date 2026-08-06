@@ -98,8 +98,7 @@ export const MyBillingsPage = () => {
 
     setIsSubmitting(true);
     try {
-      // Send proof file to backend server -> Status becomes WAITING_VERIFICATION
-      const res = await billingApi.submitProof(
+      await billingApi.submitProof(
         payBillingModal.ID || payBillingModal.id, 
         proofFile
       );
@@ -132,17 +131,17 @@ export const MyBillingsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
-            <HeartPulse className="text-pink-400" size={22} /> Portal Tagihan Pasien Saya
+          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide flex items-center gap-2">
+            <HeartPulse className="text-pink-500" size={22} /> Portal Tagihan Pasien Saya
           </h2>
-          <p className="text-xs text-gray-400">Daftar rincian biaya tindakan medis, transfer pembayaran, dan klaim BPJS Kesehatan Anda.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Daftar rincian biaya tindakan medis, transfer pembayaran, dan klaim BPJS Kesehatan Anda.</p>
         </div>
       </div>
 
       {/* Controls */}
       <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
           <input
             type="text"
             value={search}
@@ -152,11 +151,11 @@ export const MyBillingsPage = () => {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter size={16} className="text-gray-400" />
+          <Filter size={16} className="text-[var(--text-secondary)]" />
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="glass-input sm:w-40"
+            className="glass-input sm:w-40 text-[var(--text-primary)] bg-[var(--bg-input)]"
           >
             <option value="">Semua Status</option>
             <option value="Pending">Pending (Belum Dibayar)</option>
@@ -184,26 +183,26 @@ export const MyBillingsPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-400 py-8">Memuat data tagihan medis Anda...</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-8">Memuat data tagihan medis Anda...</td>
                 </tr>
               ) : billings.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-400 py-8">Belum ada catatan tagihan medis.</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-8">Belum ada catatan tagihan medis.</td>
                 </tr>
               ) : (
                 billings.map((b) => (
                   <tr key={b.ID || b.id}>
-                    <td className="font-mono text-xs text-indigo-400 font-bold">#BILL-{b.ID || b.id}</td>
-                    <td className="text-xs text-gray-400 font-mono">
+                    <td className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">#BILL-{b.ID || b.id}</td>
+                    <td className="text-xs text-[var(--text-secondary)] font-mono">
                       {b.created_at ? new Date(b.created_at).toLocaleDateString('id-ID', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric'
                       }) : '-'}
                     </td>
-                    <td className="number-font">{formatIDR(b.total_amount)}</td>
-                    <td className="number-font text-cyan-400">{formatIDR(b.bpjs_amount)}</td>
-                    <td className="number-font font-bold text-emerald-400">{formatIDR(b.patient_amount)}</td>
+                    <td className="number-font text-[var(--text-heading)]">{formatIDR(b.total_amount)}</td>
+                    <td className="number-font text-cyan-600 dark:text-cyan-400">{formatIDR(b.bpjs_amount)}</td>
+                    <td className="number-font font-bold text-emerald-600 dark:text-emerald-400">{formatIDR(b.patient_amount)}</td>
                     <td>
                       <Badge variant={b.status}>{b.status}</Badge>
                     </td>
@@ -213,25 +212,25 @@ export const MyBillingsPage = () => {
                           <>
                             <button
                               onClick={() => openPayModal(b)}
-                              className="btn btn-emerald btn-sm"
+                              className="btn btn-emerald btn-sm cursor-pointer"
                             >
                               <CreditCard size={14} /> Bayar Tagihan
                             </button>
                             <button
                               onClick={() => setSelectedBilling(b)}
-                              className="btn btn-secondary btn-sm"
+                              className="btn btn-secondary btn-sm cursor-pointer"
                             >
                               Rincian
                             </button>
                           </>
                         ) : b.status === 'WAITING_VERIFICATION' ? (
                           <>
-                            <span className="text-xs text-cyan-400 flex items-center gap-1 font-medium bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20">
+                            <span className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1 font-medium bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20">
                               <Clock size={13} /> Menunggu Kasir
                             </span>
                             <button
                               onClick={() => setSelectedBilling(b)}
-                              className="btn btn-secondary btn-sm"
+                              className="btn btn-secondary btn-sm cursor-pointer"
                             >
                               Rincian
                             </button>
@@ -239,7 +238,7 @@ export const MyBillingsPage = () => {
                         ) : (
                           <button
                             onClick={() => setSelectedBilling(b)}
-                            className="btn btn-secondary btn-sm text-emerald-400"
+                            className="btn btn-secondary btn-sm text-emerald-600 dark:text-emerald-400 cursor-pointer"
                           >
                             <Printer size={14} /> Lihat Struk
                           </button>
@@ -270,10 +269,10 @@ export const MyBillingsPage = () => {
       >
         <form onSubmit={handleConfirmPatientPayment} className="space-y-5">
           {/* Amount to transfer banner */}
-          <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
             <div>
-              <span className="text-xs text-gray-300 block">Total Tagihan Bersih yang Harus Ditransfer:</span>
-              <span className="text-xl font-extrabold text-emerald-400 number-font">
+              <span className="text-xs text-[var(--text-secondary)] block">Total Tagihan Bersih yang Harus Ditransfer:</span>
+              <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 number-font">
                 {formatIDR(payBillingModal?.patient_amount)}
               </span>
             </div>
@@ -282,58 +281,58 @@ export const MyBillingsPage = () => {
 
           {/* Destination Bank Account Info */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
-              <Building2 size={14} className="text-indigo-400" /> Rekening Tujuan Transfer Bank RS
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+              <Building2 size={14} className="text-emerald-500" /> Rekening Tujuan Transfer Bank RS
             </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* BCA Account */}
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+              <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-blue-400">BANK BCA</span>
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">BANK BCA</span>
                   <button
                     type="button"
                     onClick={() => handleCopyAccount('1234567890', 'bca')}
-                    className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"
+                    className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-heading)] flex items-center gap-1 transition-colors cursor-pointer"
                   >
-                    {copiedBank === 'bca' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    {copiedBank === 'bca' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                     {copiedBank === 'bca' ? 'Tersalin' : 'Salin'}
                   </button>
                 </div>
-                <p className="text-sm font-bold font-mono text-white tracking-wider">123-456-7890</p>
-                <p className="text-[11px] text-gray-400">a.n. RS UTAMA SIMRS</p>
+                <p className="text-sm font-bold font-mono text-[var(--text-heading)] tracking-wider">123-456-7890</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">a.n. RS UTAMA SIMRS</p>
               </div>
 
               {/* Mandiri Account */}
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+              <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-400">BANK MANDIRI</span>
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">BANK MANDIRI</span>
                   <button
                     type="button"
                     onClick={() => handleCopyAccount('9876543210', 'mandiri')}
-                    className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"
+                    className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-heading)] flex items-center gap-1 transition-colors cursor-pointer"
                   >
-                    {copiedBank === 'mandiri' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    {copiedBank === 'mandiri' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                     {copiedBank === 'mandiri' ? 'Tersalin' : 'Salin'}
                   </button>
                 </div>
-                <p className="text-sm font-bold font-mono text-white tracking-wider">987-654-3210</p>
-                <p className="text-[11px] text-gray-400">a.n. RS UTAMA SIMRS</p>
+                <p className="text-sm font-bold font-mono text-[var(--text-heading)] tracking-wider">987-654-3210</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">a.n. RS UTAMA SIMRS</p>
               </div>
             </div>
           </div>
 
           {/* ImageKit Cloud Proof Upload Field */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase text-gray-300 flex items-center gap-1.5">
-              <Upload size={14} className="text-indigo-400" /> Unggah Foto Bukti Transfer (ImageKit Cloud)
+            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] flex items-center gap-1.5">
+              <Upload size={14} className="text-emerald-500" /> Unggah Foto Bukti Transfer (ImageKit Cloud)
             </label>
 
             {!proofPreview ? (
-              <label className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-white/15 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors text-center">
-                <ImageIcon size={32} className="text-indigo-400 mb-2 opacity-80" />
-                <span className="text-xs font-semibold text-white">Klik untuk memilih foto bukti transfer</span>
-                <span className="text-[11px] text-gray-400 mt-1">Format: JPG, PNG, WEBP (Maksimal 5MB)</span>
+              <label className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] cursor-pointer transition-colors text-center">
+                <ImageIcon size={32} className="text-emerald-500 mb-2 opacity-80" />
+                <span className="text-xs font-semibold text-[var(--text-heading)]">Klik untuk memilih foto bukti transfer</span>
+                <span className="text-[11px] text-[var(--text-secondary)] mt-1">Format: JPG, PNG, WEBP (Maksimal 5MB)</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -342,7 +341,7 @@ export const MyBillingsPage = () => {
                 />
               </label>
             ) : (
-              <div className="relative rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2">
+              <div className="relative rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-subtle)] p-2">
                 <img
                   src={proofPreview}
                   alt="Preview Bukti Transfer"
@@ -351,7 +350,7 @@ export const MyBillingsPage = () => {
                 <button
                   type="button"
                   onClick={() => { setProofFile(null); setProofPreview(null); }}
-                  className="absolute top-3 right-3 btn btn-danger btn-sm text-xs py-1 px-2"
+                  className="absolute top-3 right-3 btn btn-danger btn-sm text-xs py-1 px-2 cursor-pointer"
                 >
                   Ubah Foto
                 </button>
@@ -360,18 +359,18 @@ export const MyBillingsPage = () => {
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
             <button
               type="button"
               onClick={() => setPayBillingModal(null)}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn btn-emerald btn-sm disabled:opacity-50"
+              className="btn btn-emerald btn-sm disabled:opacity-50 cursor-pointer shadow-md"
             >
               {isSubmitting ? 'Mengunggah Bukti Pembayaran...' : 'Kirim Bukti untuk Verifikasi'}
             </button>

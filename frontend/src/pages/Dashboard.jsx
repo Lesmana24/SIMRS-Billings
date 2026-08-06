@@ -44,14 +44,14 @@ export const Dashboard = ({ onNavigate }) => {
       {/* Top Welcome Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 tracking-wide">
+          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
             Dashboard Overview SIMRS
           </h2>
-          <p className="text-xs text-slate-400">Ringkasan penerimaan kas harian, klaim penjamin, dan otorisasi billing medis.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Ringkasan penerimaan kas harian, klaim penjamin, dan otorisasi billing medis.</p>
         </div>
         <button
           onClick={() => onNavigate && onNavigate('billings')}
-          className="btn btn-emerald flex items-center gap-1.5"
+          className="btn btn-emerald flex items-center gap-1.5 cursor-pointer shadow-md"
         >
           <Plus size={16} /> Terbitkan Billing Pasien
         </button>
@@ -91,41 +91,41 @@ export const Dashboard = ({ onNavigate }) => {
 
       {/* Quick Action Navigation Grid */}
       <div className="glass-panel p-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
           Aksi Cepat Manajemen SIMRS
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={() => onNavigate && onNavigate('analytics')}
-            className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 text-left transition-colors group flex items-center justify-between"
+            className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 hover:bg-[var(--bg-card-hover)] text-left transition-all group flex items-center justify-between cursor-pointer"
           >
             <div>
-              <p className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">Laporan & Analytics Keuangan</p>
-              <p className="text-[11px] text-slate-400">Grafik pendapatan & klaim BPJS vs Mandiri</p>
+              <p className="text-xs font-bold text-[var(--text-heading)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Laporan & Analytics Keuangan</p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Grafik pendapatan & klaim BPJS vs Mandiri</p>
             </div>
-            <ArrowUpRight size={15} className="text-slate-500 group-hover:text-emerald-400" />
+            <ArrowUpRight size={15} className="text-[var(--text-muted)] group-hover:text-emerald-500" />
           </button>
 
           <button
             onClick={() => onNavigate && onNavigate('tarifs')}
-            className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 text-left transition-colors group flex items-center justify-between"
+            className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 hover:bg-[var(--bg-card-hover)] text-left transition-all group flex items-center justify-between cursor-pointer"
           >
             <div>
-              <p className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">Master Tarif Layanan</p>
-              <p className="text-[11px] text-slate-400">Kelola tarif standar konsultasi & medis</p>
+              <p className="text-xs font-bold text-[var(--text-heading)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Master Tarif Layanan</p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Kelola tarif standar konsultasi & medis</p>
             </div>
-            <ArrowUpRight size={15} className="text-slate-500 group-hover:text-emerald-400" />
+            <ArrowUpRight size={15} className="text-[var(--text-muted)] group-hover:text-emerald-500" />
           </button>
 
           <button
             onClick={() => onNavigate && onNavigate('ledgers')}
-            className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 text-left transition-colors group flex items-center justify-between"
+            className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-emerald-500/50 hover:bg-[var(--bg-card-hover)] text-left transition-all group flex items-center justify-between cursor-pointer"
           >
             <div>
-              <p className="text-xs font-bold text-slate-200 group-hover:text-emerald-300">Jurnal Mutasi Kas</p>
-              <p className="text-[11px] text-slate-400">Periksa rincian mutasi penerimaan kas</p>
+              <p className="text-xs font-bold text-[var(--text-heading)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Jurnal Mutasi Kas</p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Periksa rincian mutasi penerimaan kas</p>
             </div>
-            <ArrowUpRight size={15} className="text-slate-500 group-hover:text-emerald-400" />
+            <ArrowUpRight size={15} className="text-[var(--text-muted)] group-hover:text-emerald-500" />
           </button>
         </div>
       </div>
@@ -133,12 +133,12 @@ export const Dashboard = ({ onNavigate }) => {
       {/* Recent Transactions Table */}
       <div className="glass-panel p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
             Transaksi Tagihan Medis Terakhir
           </h3>
           <button
             onClick={() => onNavigate && onNavigate('billings')}
-            className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+            className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-semibold flex items-center gap-1 cursor-pointer"
           >
             Lihat Semua Tagihan <ArrowUpRight size={14} />
           </button>
@@ -160,26 +160,26 @@ export const Dashboard = ({ onNavigate }) => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-400 py-6">Memuat transaksi terbaru...</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-6">Memuat transaksi terbaru...</td>
                 </tr>
               ) : recentBillings.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-400 py-6">Belum ada transaksi tagihan.</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-6">Belum ada transaksi tagihan.</td>
                 </tr>
               ) : (
                 recentBillings.map((b) => {
                   const isPaid = b.status === 'PAID';
                   return (
                     <tr key={b.ID || b.id}>
-                      <td className="font-mono text-xs text-slate-400">#BILL-{b.ID || b.id}</td>
-                      <td className="font-semibold text-white">{b.patient_name}</td>
-                      <td className="font-mono text-xs text-slate-200">
+                      <td className="font-mono text-xs text-[var(--text-secondary)]">#BILL-{b.ID || b.id}</td>
+                      <td className="font-semibold text-[var(--text-heading)]">{b.patient_name}</td>
+                      <td className="font-mono text-xs text-[var(--text-primary)]">
                         Rp {(b.total_amount || 0).toLocaleString('id-ID')}
                       </td>
                       <td>
-                        <span className="text-xs text-slate-300">{b.insurance_type || 'Mandiri'}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{b.insurance_type || 'Mandiri'}</span>
                       </td>
-                      <td className="font-mono text-xs font-bold text-emerald-400">
+                      <td className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
                         Rp {(b.patient_amount || 0).toLocaleString('id-ID')}
                       </td>
                       <td>
@@ -188,7 +188,7 @@ export const Dashboard = ({ onNavigate }) => {
                       <td className="text-right">
                         <button
                           onClick={() => setSelectedBilling(b)}
-                          className="btn btn-secondary btn-sm"
+                          className="btn btn-secondary btn-sm cursor-pointer"
                         >
                           Lihat Struk
                         </button>

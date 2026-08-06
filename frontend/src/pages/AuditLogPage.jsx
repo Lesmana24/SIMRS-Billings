@@ -41,10 +41,10 @@ export const AuditLogPage = () => {
   }, [fetchLogs]);
 
   const getActionBadgeColor = (act) => {
-    if (act.includes('CREATE') || act.includes('APPROVE')) return 'bg-emerald-950/60 text-emerald-400 border-emerald-500/30';
-    if (act.includes('DELETE') || act.includes('REJECT')) return 'bg-rose-950/60 text-rose-400 border-rose-500/30';
-    if (act.includes('UPDATE')) return 'bg-amber-950/60 text-amber-400 border-amber-500/30';
-    return 'bg-slate-800 text-slate-300 border-slate-700';
+    if (act.includes('CREATE') || act.includes('APPROVE')) return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
+    if (act.includes('DELETE') || act.includes('REJECT')) return 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30';
+    if (act.includes('UPDATE')) return 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30';
+    return 'bg-[var(--bg-subtle)] text-[var(--text-primary)] border-[var(--border-color)]';
   };
 
   return (
@@ -52,12 +52,12 @@ export const AuditLogPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide">
+          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
             System Activity Audit Trail Log
           </h2>
-          <p className="text-xs text-slate-400">Pencatatan rekam jejak aktivitas staf kasir, perubahan tarif, dan otorisasi transaksi SIMRS.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Pencatatan rekam jejak aktivitas staf kasir, perubahan tarif, dan otorisasi transaksi SIMRS.</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-950/40 border border-blue-500/20 text-blue-400 text-xs">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold">
           <ShieldCheck size={15} /> Real-Time Security Monitoring
         </div>
       </div>
@@ -65,7 +65,7 @@ export const AuditLogPage = () => {
       {/* Control Panel */}
       <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} />
           <input
             type="text"
             value={search}
@@ -75,11 +75,11 @@ export const AuditLogPage = () => {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter size={15} className="text-slate-400" />
+          <Filter size={15} className="text-[var(--text-secondary)]" />
           <select
             value={actionFilter}
             onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-            className="glass-input sm:w-44"
+            className="glass-input sm:w-44 text-[var(--text-primary)] bg-[var(--bg-input)]"
           >
             <option value="">Semua Tindakan Audit</option>
             <option value="APPROVE_PAYMENT">Otorisasi Pembayaran</option>
@@ -110,19 +110,19 @@ export const AuditLogPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-400 py-8">Memuat audit trail log...</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-8">Memuat audit trail log...</td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-slate-400 py-8">Tidak ada rekam log audit ditemukan.</td>
+                  <td colSpan={7} className="text-center text-[var(--text-secondary)] py-8">Tidak ada rekam log audit ditemukan.</td>
                 </tr>
               ) : (
                 logs.map((l) => (
                   <tr key={l.ID || l.id}>
-                    <td className="text-xs text-slate-400 font-mono">
+                    <td className="text-xs text-[var(--text-secondary)] font-mono">
                       {l.created_at ? new Date(l.created_at).toLocaleString('id-ID') : '-'}
                     </td>
-                    <td className="font-semibold text-white">{l.username || 'System'}</td>
+                    <td className="font-semibold text-[var(--text-heading)]">{l.username || 'System'}</td>
                     <td>
                       <Badge variant={l.role}>{l.role}</Badge>
                     </td>
@@ -131,9 +131,9 @@ export const AuditLogPage = () => {
                         <Activity size={12} /> {l.action}
                       </span>
                     </td>
-                    <td className="font-mono text-xs text-slate-300">{l.resource}</td>
-                    <td className="font-mono text-xs text-slate-400">{l.ip_address || '127.0.0.1'}</td>
-                    <td className="text-xs text-slate-300 max-w-md truncate">{l.details}</td>
+                    <td className="font-mono text-xs text-[var(--text-primary)]">{l.resource}</td>
+                    <td className="font-mono text-xs text-[var(--text-secondary)]">{l.ip_address || '127.0.0.1'}</td>
+                    <td className="text-xs text-[var(--text-primary)] max-w-md truncate">{l.details}</td>
                   </tr>
                 ))
               )}

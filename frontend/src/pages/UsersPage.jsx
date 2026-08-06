@@ -147,12 +147,12 @@ export const UsersPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide">
+          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
             Manajemen Pengguna & Hak Akses
           </h2>
-          <p className="text-xs text-slate-400">Pengelolaan akun administrator, staff kasir, 2FA Security PIN, dan pasien terdaftar SIMRS.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Pengelolaan akun administrator, staff kasir, 2FA Security PIN, dan pasien terdaftar SIMRS.</p>
         </div>
-        <button onClick={openCreateModal} className="btn btn-emerald flex items-center gap-1.5 cursor-pointer">
+        <button onClick={openCreateModal} className="btn btn-emerald flex items-center gap-1.5 cursor-pointer shadow-md">
           <UserPlus size={16} /> Buat Akun Pengguna Baru
         </button>
       </div>
@@ -160,7 +160,7 @@ export const UsersPage = () => {
       {/* Controls */}
       <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} />
           <input
             type="text"
             value={search}
@@ -170,7 +170,7 @@ export const UsersPage = () => {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter size={15} className="text-slate-400" />
+          <Filter size={15} className="text-[var(--text-secondary)]" />
           <select
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
@@ -203,11 +203,11 @@ export const UsersPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-slate-400 py-8">Memuat pengguna...</td>
+                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8">Memuat pengguna...</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-slate-400 py-8">Tidak ada pengguna ditemukan.</td>
+                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8">Tidak ada pengguna ditemukan.</td>
                 </tr>
               ) : (
                 users.map((u) => {
@@ -217,30 +217,30 @@ export const UsersPage = () => {
 
                   return (
                     <tr key={uid}>
-                      <td className="font-mono text-xs text-slate-400">#USR-{uid}</td>
-                      <td className="font-semibold text-white">@{u.username}</td>
-                      <td className="text-slate-200 font-medium">{u.full_name || <span className="text-slate-500 italic text-xs">- Belum diisi -</span>}</td>
-                      <td className="text-slate-300 font-mono text-xs">{u.phone || <span className="text-slate-500 italic">-</span>}</td>
+                      <td className="font-mono text-xs text-[var(--text-secondary)]">#USR-{uid}</td>
+                      <td className="font-semibold text-[var(--text-heading)]">@{u.username}</td>
+                      <td className="text-[var(--text-primary)] font-medium">{u.full_name || <span className="text-[var(--text-muted)] italic text-xs">- Belum diisi -</span>}</td>
+                      <td className="text-[var(--text-secondary)] font-mono text-xs">{u.phone || <span className="text-[var(--text-muted)] italic">-</span>}</td>
                       <td>
                         <Badge variant={u.role}>{u.role}</Badge>
                       </td>
                       <td>
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 shadow-sm transition-all duration-200 hover:border-emerald-500/50">
-                          <KeyRound size={13} className="text-emerald-400 shrink-0" />
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 shadow-sm transition-all duration-200 hover:border-emerald-500/50">
+                          <KeyRound size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span className="font-mono text-xs font-bold tracking-wider select-all">
                             {isRevealed ? pinVal : '••••••'}
                           </span>
                           <button
                             type="button"
                             onClick={() => togglePinVisibility(uid)}
-                            className="text-slate-400 hover:text-emerald-300 transition-colors p-0.5 ml-0.5 cursor-pointer rounded hover:bg-emerald-900/40"
+                            className="text-[var(--text-secondary)] hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors p-0.5 ml-0.5 cursor-pointer rounded hover:bg-emerald-500/20"
                             title={isRevealed ? "Sembunyikan Kode PIN" : "Lihat Kode PIN"}
                           >
                             {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
                           </button>
                         </div>
                       </td>
-                      <td className="text-xs text-slate-400 font-mono">
+                      <td className="text-xs text-[var(--text-secondary)] font-mono">
                         {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
                       </td>
                       <td className="text-right">
@@ -281,7 +281,7 @@ export const UsersPage = () => {
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Buat Akun Pengguna SIMRS Baru" maxWidth="max-w-md">
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Username Pengguna</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">Username Pengguna</label>
             <input
               type="text"
               value={createUsername}
@@ -293,7 +293,7 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Password</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">Password</label>
             <input
               type="password"
               value={createPassword}
@@ -305,11 +305,11 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Peran Hak Akses (Role)</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">Peran Hak Akses (Role)</label>
             <select
               value={createRole}
               onChange={(e) => setCreateRole(e.target.value)}
-              className="glass-input text-xs"
+              className="glass-input text-xs text-[var(--text-primary)] bg-[var(--bg-input)]"
             >
               <option value="staff">Staff Kasir / Medis</option>
               <option value="admin">Administrator SIMRS</option>
@@ -318,9 +318,9 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1 flex items-center justify-between">
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1 flex items-center justify-between">
               <span>Security PIN 2FA (6 Digit)</span>
-              <span className="text-[10px] text-emerald-400 font-normal">PIN Otorisasi</span>
+              <span className="text-[10px] text-emerald-500 font-normal">PIN Otorisasi</span>
             </label>
             <input
               type="text"
@@ -331,10 +331,10 @@ export const UsersPage = () => {
               className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold"
               required
             />
-            <p className="text-[10px] text-slate-400 mt-1">Default PIN 2FA: <code className="text-emerald-300">123456</code></p>
+            <p className="text-[10px] text-[var(--text-secondary)] mt-1">Default PIN 2FA: <code className="text-emerald-500 font-bold">123456</code></p>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
             <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
@@ -349,7 +349,7 @@ export const UsersPage = () => {
       <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title={`Edit Akun #${editUser?.ID || editUser?.id} (${editUser?.username})`}>
         <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Username</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">Username</label>
             <input
               type="text"
               value={username}
@@ -360,11 +360,11 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Peran Hak Akses (Role)</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">Peran Hak Akses (Role)</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="glass-input text-xs"
+              className="glass-input text-xs text-[var(--text-primary)] bg-[var(--bg-input)]"
             >
               <option value="admin">Administrator</option>
               <option value="staff">Staff Kasir / Medis</option>
@@ -373,11 +373,11 @@ export const UsersPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1 flex items-center justify-between">
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1 flex items-center justify-between">
               <span className="flex items-center gap-1">
-                <KeyRound size={13} className="text-emerald-400" /> Kode 2FA Security PIN (6 Digit)
+                <KeyRound size={13} className="text-emerald-500" /> Kode 2FA Security PIN (6 Digit)
               </span>
-              <span className="text-[10px] text-emerald-400 font-normal">Otorisasi Kasir</span>
+              <span className="text-[10px] text-emerald-500 font-normal">Otorisasi Kasir</span>
             </label>
             <input
               type="text"
@@ -385,14 +385,14 @@ export const UsersPage = () => {
               value={edit2FA}
               onChange={(e) => setEdit2FA(e.target.value.replace(/\D/g, ''))}
               placeholder="123456"
-              className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold text-emerald-300"
+              className="glass-input text-xs font-mono text-center tracking-[0.3em] font-bold text-emerald-600 dark:text-emerald-300"
               required
             />
-            <p className="text-[10px] text-slate-400 mt-1">PIN 2FA ini digunakan user saat melakukan otorisasi transaksi kasir.</p>
+            <p className="text-[10px] text-[var(--text-secondary)] mt-1">PIN 2FA ini digunakan user saat melakukan otorisasi transaksi kasir.</p>
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">
               Reset Password (Opsional)
             </label>
             <input
@@ -404,7 +404,7 @@ export const UsersPage = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
             <button type="button" onClick={() => setEditUser(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
@@ -418,10 +418,10 @@ export const UsersPage = () => {
       {/* Modal Delete User */}
       <Modal isOpen={!!deleteUser} onClose={() => setDeleteUser(null)} title="Konfirmasi Hapus Pengguna">
         <div className="space-y-3 text-xs">
-          <p className="text-slate-300">
-            Apakah Anda yakin ingin menghapus akun <strong className="text-white">{deleteUser?.username}</strong>?
+          <p className="text-[var(--text-primary)]">
+            Apakah Anda yakin ingin menghapus akun <strong className="text-[var(--text-heading)]">{deleteUser?.username}</strong>?
           </p>
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
             <button type="button" onClick={() => setDeleteUser(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>

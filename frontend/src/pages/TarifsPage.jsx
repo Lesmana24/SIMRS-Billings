@@ -103,7 +103,7 @@ export const TarifsPage = () => {
 
     try {
       await tarifApi.delete(deleteTarif.ID || deleteTarif.id);
-      setToast({ message: 'Tarif layanan berhasil dihapus', type: 'success' });
+      setToast({ message: 'Tarif berhasil dihapus', type: 'success' });
       setDeleteTarif(null);
       fetchTarifs();
     } catch (err) {
@@ -121,14 +121,14 @@ export const TarifsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide">
+          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
             Master Tarif Layanan SIMRS
           </h2>
-          <p className="text-xs text-slate-400">Pengaturan standar tarif tindakan medis, konsultasi dokter, laboratorium, dan rawat inap.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Pengaturan standar tarif tindakan medis, konsultasi dokter, laboratorium, dan rawat inap.</p>
         </div>
         <button
           onClick={() => { resetForm(); setIsCreateOpen(true); }}
-          className="btn btn-emerald flex items-center gap-1.5"
+          className="btn btn-emerald flex items-center gap-1.5 cursor-pointer shadow-md"
         >
           <Plus size={16} /> Tambah Tarif Layanan
         </button>
@@ -137,7 +137,7 @@ export const TarifsPage = () => {
       {/* Controls */}
       <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} />
           <input
             type="text"
             value={search}
@@ -164,11 +164,11 @@ export const TarifsPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-slate-400 py-8">Memuat master tarif...</td>
+                  <td colSpan={5} className="text-center text-[var(--text-secondary)] py-8">Memuat master tarif...</td>
                 </tr>
               ) : tarifs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-slate-400 py-8">Tidak ada master tarif ditemukan.</td>
+                  <td colSpan={5} className="text-center text-[var(--text-secondary)] py-8">Tidak ada master tarif ditemukan.</td>
                 </tr>
               ) : (
                 tarifs.map((t) => {
@@ -178,28 +178,28 @@ export const TarifsPage = () => {
 
                   return (
                     <tr key={t.ID || t.id}>
-                      <td className="font-mono text-xs text-slate-400">#{t.kode || t.ID || t.id}</td>
-                      <td className="font-semibold text-white">{name}</td>
+                      <td className="font-mono text-xs text-[var(--text-secondary)]">#{t.kode || t.ID || t.id}</td>
+                      <td className="font-semibold text-[var(--text-heading)]">{name}</td>
                       <td>
-                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-color)]">
                           {category}
                         </span>
                       </td>
-                      <td className="font-mono text-xs font-bold text-emerald-400">
+                      <td className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
                         Rp {price.toLocaleString('id-ID')}
                       </td>
                       <td className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => openEditModal(t)}
-                            className="btn btn-secondary btn-sm p-1.5"
+                            className="btn btn-secondary btn-sm p-1.5 cursor-pointer"
                             title="Edit Tarif"
                           >
                             <Edit3 size={14} />
                           </button>
                           <button
                             onClick={() => setDeleteTarif(t)}
-                            className="btn btn-danger btn-sm p-1.5"
+                            className="btn btn-danger btn-sm p-1.5 cursor-pointer"
                             title="Hapus Tarif"
                           >
                             <Trash2 size={14} />
@@ -222,49 +222,56 @@ export const TarifsPage = () => {
         />
       </div>
 
-      {/* Create Modal */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Tambah Master Tarif SIMRS Baru">
+      {/* Modal Create Tarif */}
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Tambah Master Tarif Medis Baru">
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Nama Tindakan / Layanan Medis</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">
+              Nama Layanan / Tindakan Medis
+            </label>
             <input
               type="text"
               value={nama}
               onChange={(e) => setNama(e.target.value)}
-              placeholder="Contoh: Konsultasi Spesialis Dahlan, EKG Jantung, Rawat Inap VIP..."
+              placeholder="Contoh: Konsultasi Spesialis, Foto Rontgen Thorax..."
               className="glass-input text-xs"
               required
             />
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Besaran Tarif Satuan (IDR)</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">
+              Besaran Tarif Satuan (IDR)
+            </label>
             <input
               type="number"
+              min={1000}
               value={harga}
-              onChange={(e) => setHarga(e.target.value)}
-              placeholder="150000"
-              className="glass-input text-xs font-mono"
+              onChange={(e) => setHarga(Number(e.target.value))}
+              placeholder="Contoh: 150000"
+              className="glass-input text-xs font-mono font-bold"
               required
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
+            <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="btn btn-emerald btn-sm">
-              Simpan Tarif
+            <button type="submit" className="btn btn-emerald btn-sm cursor-pointer flex items-center gap-1">
+              <Plus size={14} /> Simpan Tarif Layanan
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Edit Modal */}
-      <Modal isOpen={!!editTarif} onClose={() => setEditTarif(null)} title="Perbarui Master Tarif">
+      {/* Modal Edit Tarif */}
+      <Modal isOpen={!!editTarif} onClose={() => setEditTarif(null)} title={`Edit Master Tarif #${editTarif?.ID || editTarif?.id}`}>
         <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Nama Layanan Medis</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">
+              Nama Layanan / Tindakan Medis
+            </label>
             <input
               type="text"
               value={nama}
@@ -275,38 +282,41 @@ export const TarifsPage = () => {
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-300 mb-1">Besaran Tarif Satuan (IDR)</label>
+            <label className="block font-semibold uppercase text-[var(--text-secondary)] mb-1">
+              Besaran Tarif Satuan (IDR)
+            </label>
             <input
               type="number"
+              min={1000}
               value={harga}
-              onChange={(e) => setHarga(e.target.value)}
-              className="glass-input text-xs font-mono"
+              onChange={(e) => setHarga(Number(e.target.value))}
+              className="glass-input text-xs font-mono font-bold"
               required
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button type="button" onClick={() => setEditTarif(null)} className="btn btn-secondary btn-sm">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
+            <button type="button" onClick={() => setEditTarif(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="btn btn-emerald btn-sm">
+            <button type="submit" className="btn btn-emerald btn-sm cursor-pointer">
               Simpan Perubahan
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Modal */}
-      <Modal isOpen={!!deleteTarif} onClose={() => setDeleteTarif(null)} title="Hapus Master Tarif">
+      {/* Modal Delete Tarif */}
+      <Modal isOpen={!!deleteTarif} onClose={() => setDeleteTarif(null)} title="Konfirmasi Hapus Master Tarif">
         <div className="space-y-3 text-xs">
-          <p className="text-slate-300">
-            Apakah Anda yakin ingin menghapus tarif <strong className="text-white">{deleteTarif?.action_name || deleteTarif?.nama}</strong>?
+          <p className="text-[var(--text-primary)]">
+            Apakah Anda yakin ingin menghapus tarif <strong className="text-[var(--text-heading)]">{deleteTarif?.action_name || deleteTarif?.nama}</strong>?
           </p>
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button type="button" onClick={() => setDeleteTarif(null)} className="btn btn-secondary btn-sm">
+          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
+            <button type="button" onClick={() => setDeleteTarif(null)} className="btn btn-secondary btn-sm cursor-pointer">
               Batal
             </button>
-            <button type="button" onClick={handleDelete} className="btn btn-danger btn-sm">
+            <button type="button" onClick={handleDelete} className="btn btn-danger btn-sm cursor-pointer">
               Ya, Hapus Tarif
             </button>
           </div>
