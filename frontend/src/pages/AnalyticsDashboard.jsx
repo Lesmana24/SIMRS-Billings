@@ -376,16 +376,16 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Activity size={18} className="text-indigo-400" /> Grafik Tren Pendapatan Harian (7 Hari Terakhir)
+                <Activity size={18} className="text-emerald-400" /> Grafik Tren Pendapatan Harian (7 Hari Terakhir)
               </h3>
-              <p className="text-xs text-gray-400">Visualisasi penerimaan kas bersih pasien vs klaim BPJS Kesehatan</p>
+              <p className="text-xs text-slate-400">Visualisasi penerimaan kas bersih pasien vs klaim BPJS Kesehatan vs Asuransi Swasta</p>
             </div>
             <span className="badge badge-paid">Real-Time Data</span>
           </div>
 
           {/* SVG/Bar Visualization */}
           <div className="pt-4 pb-2">
-            <div className="h-56 flex items-end gap-3 sm:gap-6 px-2 border-b border-white/10">
+            <div className="h-56 flex items-end gap-3 sm:gap-6 px-2 border-b border-slate-800">
               {trends.map((t, idx) => {
                 const totalVal = Number(t.total_amount) || 0;
                 const heightPct = Math.max(10, Math.round((totalVal / maxTrendVal) * 100));
@@ -393,49 +393,56 @@ export const AnalyticsDashboard = () => {
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end relative">
                     {/* Tooltip on Hover */}
-                    <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] p-2 rounded-lg border border-indigo-500/40 shadow-xl pointer-events-none z-10 font-mono whitespace-nowrap">
-                      <div className="font-bold text-indigo-300">{t.date}</div>
+                    <div className="absolute -top-16 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 text-white text-[10px] p-2 rounded-lg border border-emerald-500/40 shadow-xl pointer-events-none z-10 font-mono whitespace-nowrap">
+                      <div className="font-bold text-emerald-300">{t.date}</div>
                       <div>Total: {formatIDR(t.total_amount)}</div>
                       <div className="text-emerald-400">Pasien: {formatIDR(t.patient_amount)}</div>
                       <div className="text-cyan-400">BPJS: {formatIDR(t.bpjs_amount)}</div>
+                      {Number(t.insurance_amount || 0) > 0 && (
+                        <div className="text-purple-400">Asuransi Swasta: {formatIDR(t.insurance_amount)}</div>
+                      )}
                     </div>
 
                     {/* Animated Bar */}
-                    <div className="w-full max-w-[48px] bg-white/5 rounded-t-lg overflow-hidden flex flex-col justify-end h-full p-1 border border-white/10 group-hover:border-indigo-500/50 transition-colors">
+                    <div className="w-full max-w-[48px] bg-slate-900/80 rounded-t-lg overflow-hidden flex flex-col justify-end h-full p-1 border border-slate-800 group-hover:border-emerald-500/50 transition-colors">
                       <div 
                         style={{ height: `${heightPct}%` }}
-                        className="w-full bg-gradient-to-t from-indigo-600 to-emerald-400 rounded-t transition-all duration-500"
+                        className="w-full bg-gradient-to-t from-purple-600 via-cyan-500 to-emerald-400 rounded-t transition-all duration-500"
                       />
                     </div>
 
                     {/* Date Label */}
-                    <span className="text-[11px] font-mono text-gray-400 font-medium">{t.date}</span>
+                    <span className="text-[11px] font-mono text-slate-400 font-medium">{t.date}</span>
                   </div>
                 );
               })}
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-6 pt-4 text-xs text-gray-400">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-4 text-xs text-slate-300">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded bg-emerald-400" />
                 <span>Penerimaan Mandiri Pasien</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-indigo-500" />
+                <div className="w-3 h-3 rounded bg-cyan-400" />
                 <span>Subsidi BPJS Kesehatan</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-purple-500" />
+                <span>Klaim Asuransi Swasta</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Chart 2: BPJS vs Patient Share Donut */}
+        {/* Chart 2: BPJS vs Patient vs Private Ins Share Donut */}
         <div className="glass-panel p-5 space-y-4 flex flex-col justify-between">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <PieChart size={18} className="text-cyan-400" /> Distribusi Klaim BPJS vs Mandiri ({monthNames[selectedMonth - 1]})
+              <PieChart size={18} className="text-cyan-400" /> Distribusi Penjamin ({monthNames[selectedMonth - 1]})
             </h3>
-            <p className="text-xs text-gray-400">Persentase kontribusi bayar mandiri vs klaim BPJS</p>
+            <p className="text-xs text-slate-400">Persentase kontribusi bayar mandiri vs BPJS vs Asuransi Swasta</p>
           </div>
 
           {/* SVG Donut Visualizer */}
@@ -449,7 +456,7 @@ export const AnalyticsDashboard = () => {
                 strokeWidth="12"
                 fill="transparent"
               />
-              {/* BPJS Segment */}
+              {/* BPJS Segment (Cyan) */}
               <circle
                 cx="50"
                 cy="50"
@@ -457,11 +464,11 @@ export const AnalyticsDashboard = () => {
                 stroke="#06b6d4"
                 strokeWidth="12"
                 fill="transparent"
-                strokeDasharray={`${(bpjs.bpjs_percentage / 100) * 251.2} 251.2`}
+                strokeDasharray={`${((bpjs.bpjs_percentage || 0) / 100) * 251.2} 251.2`}
                 strokeDashoffset="0"
                 className="transition-all duration-1000"
               />
-              {/* Patient Segment */}
+              {/* Patient Segment (Emerald) */}
               <circle
                 cx="50"
                 cy="50"
@@ -469,14 +476,26 @@ export const AnalyticsDashboard = () => {
                 stroke="#10b981"
                 strokeWidth="12"
                 fill="transparent"
-                strokeDasharray={`${(bpjs.patient_percentage / 100) * 251.2} 251.2`}
-                strokeDashoffset={`-${(bpjs.bpjs_percentage / 100) * 251.2}`}
+                strokeDasharray={`${((bpjs.patient_percentage || 0) / 100) * 251.2} 251.2`}
+                strokeDashoffset={`-${((bpjs.bpjs_percentage || 0) / 100) * 251.2}`}
+                className="transition-all duration-1000"
+              />
+              {/* Private Insurance Segment (Purple) */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                stroke="#a855f7"
+                strokeWidth="12"
+                fill="transparent"
+                strokeDasharray={`${((bpjs.private_ins_percentage || 0) / 100) * 251.2} 251.2`}
+                strokeDashoffset={`-${(((bpjs.bpjs_percentage || 0) + (bpjs.patient_percentage || 0)) / 100) * 251.2}`}
                 className="transition-all duration-1000"
               />
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wider">Total Billing</span>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Total Billing</span>
               <span className="text-sm font-bold text-white font-mono">{formatIDR(bpjs.total_gross)}</span>
             </div>
           </div>

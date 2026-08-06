@@ -19,11 +19,12 @@ type PeriodSummary struct {
 }
 
 type DailyTrend struct {
-	Date          string          `json:"date"`
-	TotalAmount   decimal.Decimal `json:"total_amount"`
-	PatientAmount decimal.Decimal `json:"patient_amount"`
-	BPJSAmount    decimal.Decimal `json:"bpjs_amount"`
-	Count         int64           `json:"count"`
+	Date            string          `json:"date"`
+	TotalAmount     decimal.Decimal `json:"total_amount"`
+	PatientAmount   decimal.Decimal `json:"patient_amount"`
+	BPJSAmount      decimal.Decimal `json:"bpjs_amount"`
+	InsuranceAmount decimal.Decimal `json:"insurance_amount"`
+	Count           int64           `json:"count"`
 }
 
 type BPJSSplit struct {
@@ -136,7 +137,7 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 		dayEnd := dayStart.AddDate(0, 0, 1)
 		dateStr := dayStart.Format("02 Jan")
 
-		var totAmt, patAmt, bpjsAmt decimal.Decimal
+		var totAmt, patAmt, bpjsAmt, insAmt decimal.Decimal
 		var cnt int64
 
 		db.Model(&models.MedicalBilling{}).
@@ -148,19 +149,24 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 			Select("COALESCE(SUM(patient_amount), 0)").Scan(&patAmt)
 
 		db.Model(&models.MedicalBilling{}).
-			Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", dayStart, dayEnd).
+			Where("status = ? AND created_at >= ? AND created_at < ? AND (insurance_provider = ? OR insurance_provider IS NULL OR insurance_provider = '')", "PAID", dayStart, dayEnd, "BPJS Kesehatan").
 			Select("COALESCE(SUM(bpjs_amount), 0)").Scan(&bpjsAmt)
+
+		db.Model(&models.MedicalBilling{}).
+			Where("status = ? AND created_at >= ? AND created_at < ? AND insurance_provider != ? AND insurance_provider != ''", "PAID", dayStart, dayEnd, "BPJS Kesehatan").
+			Select("COALESCE(SUM(insurance_claim), 0)").Scan(&insAmt)
 
 		db.Model(&models.MedicalBilling{}).
 			Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", dayStart, dayEnd).
 			Count(&cnt)
 
 		dailyTrends = append(dailyTrends, DailyTrend{
-			Date:          dateStr,
-			TotalAmount:   totAmt,
-			PatientAmount: patAmt,
-			BPJSAmount:    bpjsAmt,
-			Count:         cnt,
+			Date:            dateStr,
+			TotalAmount:     totAmt,
+			PatientAmount:   patAmt,
+			BPJSAmount:      bpjsAmt,
+			InsuranceAmount: insAmt,
+			Count:           cnt,
 		})
 	}
 
