@@ -215,57 +215,57 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Struk Rincian Pembayaran Medis Resmi" maxWidth="max-w-2xl">
-      <div className="space-y-4 text-gray-200" id="printable-receipt">
+      <div className="space-y-4 text-slate-200" id="printable-receipt">
         {/* Kop Surat Resmi Rumah Sakit */}
-        <div className="pb-3 border-b-2 border-indigo-500/40 flex items-start justify-between gap-4">
+        <div className="pb-3 border-b-2 border-emerald-500/40 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+            <div className="p-2.5 bg-emerald-950/60 text-emerald-400 rounded-2xl border border-emerald-500/30">
               <Hospital size={28} />
             </div>
             <div>
               <h2 className="text-lg font-extrabold text-white tracking-wide uppercase">
                 RUMAH SAKIT UTAMA SIMRS
               </h2>
-              <p className="text-xs text-gray-400 font-medium">
+              <p className="text-xs text-slate-400 font-medium">
                 Sistem Informasi Manajemen Rumah Sakit • Divisi Keuangan & Billing
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5">
                 Jl. Kesehatan No. 45, Jakarta Pusat 10110 • Telp: (021) 555-0199 • Fax: (021) 555-0200
               </p>
-              <p className="text-[11px] text-indigo-400 font-mono">
+              <p className="text-[11px] text-emerald-400 font-mono">
                 www.simrs-utama.id • billing@simrs-utama.id
               </p>
             </div>
           </div>
           <div className="text-right">
             <Badge variant={billing.status}>{billing.status}</Badge>
-            <p className="text-xs font-mono text-indigo-400 font-bold mt-1">
+            <p className="text-xs font-mono text-emerald-400 font-bold mt-1">
               NO: #BILL-{billing.ID || billing.id}
             </p>
           </div>
         </div>
 
         {/* Judul Dokumen Invoice */}
-        <div className="text-center bg-white/5 py-1.5 rounded-lg border border-white/10">
+        <div className="text-center bg-slate-900/80 py-1.5 rounded-lg border border-slate-800">
           <h3 className="text-xs font-bold uppercase tracking-widest text-white">
             STRUK BUKTI PEMBAYARAN TAGIHAN MEDIS RESMI
           </h3>
         </div>
 
         {/* Informasi Pasien & Rincian Administrasi */}
-        <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+        <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <User size={14} className="text-indigo-400" />
+              <User size={14} className="text-emerald-400" />
               <div>
-                <span className="text-[11px] text-gray-400 block">Nama Pasien:</span>
+                <span className="text-[11px] text-slate-400 block">Nama Pasien:</span>
                 <strong className="text-xs text-white font-bold">{billing.patient_name || 'Pasien SIMRS'}</strong>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <CreditCard size={14} className="text-indigo-400" />
+              <CreditCard size={14} className="text-emerald-400" />
               <div>
-                <span className="text-[11px] text-gray-400 block">Metode Pembayaran:</span>
+                <span className="text-[11px] text-slate-400 block">Metode Pembayaran:</span>
                 <strong className="text-white">
                   {getPaymentMethodDisplay()}
                 </strong>
@@ -277,14 +277,14 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
             <div className="flex items-center gap-2">
               <Building size={14} className="text-cyan-400" />
               <div>
-                <span className="text-[11px] text-gray-400 block">Penyedia Asuransi:</span>
+                <span className="text-[11px] text-slate-400 block">Penyedia Asuransi:</span>
                 <strong className="text-cyan-300 font-bold">{provider}</strong>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar size={14} className="text-indigo-400" />
+              <Calendar size={14} className="text-emerald-400" />
               <div>
-                <span className="text-[11px] text-gray-400 block">Tanggal Transaksi:</span>
+                <span className="text-[11px] text-slate-400 block">Tanggal Transaksi:</span>
                 <strong className="text-white font-mono">
                   {billing.created_at ? new Date(billing.created_at).toLocaleString('id-ID', {
                     day: 'numeric',
@@ -301,8 +301,8 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
 
         {/* Tabel Rincian Tindakan Medis */}
         <div>
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <FileText size={13} className="text-indigo-400" /> Rincian Tindakan Medis & Layanan Kesehatan
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
+            <FileText size={13} className="text-emerald-400" /> Rincian Tindakan Medis & Layanan Kesehatan
           </h4>
           <div className="table-container">
             <table className="table">
@@ -318,18 +318,18 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center text-gray-400 py-3">
+                    <td colSpan={5} className="text-center text-slate-400 py-3">
                       Tidak ada detail item tindakan medis.
                     </td>
                   </tr>
                 ) : (
                   items.map((item, idx) => (
                     <tr key={idx}>
-                      <td className="text-center text-xs font-mono text-gray-400">{idx + 1}</td>
+                      <td className="text-center text-xs font-mono text-slate-400">{idx + 1}</td>
                       <td className="font-semibold text-white">{item.item_name}</td>
                       <td className="text-right number-font">{formatIDR(item.unit_price)}</td>
                       <td className="text-center number-font">{item.quantity}</td>
-                      <td className="text-right number-font font-bold text-indigo-300">
+                      <td className="text-right number-font font-bold text-emerald-300">
                         {formatIDR(item.sub_total)}
                       </td>
                     </tr>
@@ -341,8 +341,8 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
         </div>
 
         {/* Ringkasan Kalkulasi Biaya & Subsidi BPJS/Asuransi */}
-        <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/20 space-y-1.5 text-xs">
-          <div className="flex justify-between text-gray-300">
+        <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/20 space-y-1.5 text-xs">
+          <div className="flex justify-between text-slate-300">
             <span>Subtotal Tagihan Tindakan Medis:</span>
             <span className="number-font font-semibold text-white">{formatIDR(billing.total_amount)}</span>
           </div>
@@ -350,7 +350,7 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
             <span>Klaim Subsidi {provider}:</span>
             <span className="number-font font-semibold text-cyan-300">- {formatIDR(claimAmount)}</span>
           </div>
-          <div className="border-t border-white/10 pt-1.5 flex justify-between items-center font-bold text-xs">
+          <div className="border-t border-slate-800 pt-1.5 flex justify-between items-center font-bold text-xs">
             <span className="text-white uppercase">TOTAL DIBAYAR PASIEN (LUNAS):</span>
             <span className="number-font text-emerald-400 text-sm">{formatIDR(billing.patient_amount)}</span>
           </div>
@@ -358,21 +358,21 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
 
         {/* Bukti Transfer ImageKit Cloud (Jika Ada) */}
         {billing.proof_of_payment && (
-          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
             <div className="flex items-center justify-between">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
-                <ImageIcon size={13} className="text-indigo-400" /> Foto Bukti Transfer Bank (ImageKit Cloud)
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <ImageIcon size={13} className="text-emerald-400" /> Foto Bukti Transfer Bank (ImageKit Cloud)
               </h4>
               <a 
                 href={billing.proof_of_payment} 
                 target="_blank" 
                 rel="noreferrer"
-                className="text-[11px] text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
+                className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
               >
                 Buka Foto Penuh <ExternalLink size={11} />
               </a>
             </div>
-            <div className="rounded-lg overflow-hidden border border-white/10 bg-black/40 p-1.5 max-h-32 flex items-center justify-center">
+            <div className="rounded-lg overflow-hidden border border-slate-800 bg-black/40 p-1.5 max-h-32 flex items-center justify-center">
               <img 
                 src={billing.proof_of_payment} 
                 alt="Bukti Transfer ImageKit" 
