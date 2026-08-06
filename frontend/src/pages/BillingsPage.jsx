@@ -34,7 +34,8 @@ export const BillingsPage = () => {
   const [customInsuranceName, setCustomInsuranceName] = useState('');
   const [insuranceClaimAmount, setInsuranceClaimAmount] = useState(0);
   const [selectedTarifIds, setSelectedTarifIds] = useState([]);
-  
+  const [tarifQuantities, setTarifQuantities] = useState({});
+
   // Payment Breakdown State (For Pay Modal)
   const [payModalBilling, setPayModalBilling] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -83,11 +84,12 @@ export const BillingsPage = () => {
     fetchTarifsAndPatients();
   }, [fetchBillings]);
 
-  // Derived calculation for Create Modal - support both action_name/amount and nama/harga
+  // Derived calculation for Create Modal - support quantity per item
   const selectedTarifsList = tarifs.filter((t) => selectedTarifIds.includes(t.ID || t.id));
   const calculatedTotalAmount = selectedTarifsList.reduce((sum, t) => {
     const price = typeof t.amount === 'number' ? t.amount : (t.amount ? parseFloat(t.amount) : (t.harga || 0));
-    return sum + price;
+    const qty = tarifQuantities[t.ID || t.id] || 1;
+    return sum + (price * qty);
   }, 0);
 
   const isNoInsurance = insuranceType === 'Tanpa Asuransi (Mandiri)';
@@ -117,6 +119,11 @@ export const BillingsPage = () => {
       const finalInsuranceType = insuranceType === 'Lainnya' ? customInsuranceName : insuranceType;
       const patientUserId = selectedPatientUserId ? Number(selectedPatientUserId) : 0;
 
+      const itemsPayload = selectedTarifIds.map((id) => ({
+        action_id: Number(id),
+        quantity: Number(tarifQuantities[id] || 1),
+      }));
+
       await billingApi.create({
         patient_user_id: patientUserId,
         patient_name: patientName,
@@ -125,8 +132,8 @@ export const BillingsPage = () => {
         insurance_claim: Number(effectiveClaimAmount),
         insurance_claim_amount: Number(effectiveClaimAmount),
         bpjs_claim: Number(effectiveClaimAmount),
-        tarif_ids: selectedTarifIds,
         action_ids: selectedTarifIds,
+        items: itemsPayload,
       });
 
       setToast({ message: 'Tagihan medis berhasil diterbitkan', type: 'success' });
@@ -145,12 +152,25 @@ export const BillingsPage = () => {
     setCustomInsuranceName('');
     setInsuranceClaimAmount(0);
     setSelectedTarifIds([]);
+    setTarifQuantities({});
   };
 
   const handleTarifToggle = (id) => {
-    setSelectedTarifIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    if (selectedTarifIds.includes(id)) {
+      setSelectedTarifIds((prev) => prev.filter((item) => item !== id));
+    } else {
+      setSelectedTarifIds((prev) => [...prev, id]);
+      setTarifQuantities((prev) => ({ ...prev, [id]: prev[id] || 1 }));
+    }
+  };
+
+  const handleQuantityChange = (id, delta, e) => {
+    if (e) e.stopPropagation();
+    setTarifQuantities((prev) => {
+      const current = prev[id] || 1;
+      const next = Math.max(1, current + delta);
+      return { ...prev, [id]: next };
+    });
   };
 
   const openPayModal = (b) => {
@@ -461,20 +481,24 @@ export const BillingsPage = () => {
           )}
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-300 mb-2">
-              Pilih Layanan / Tindakan Medis SIMRS
+            <label className="block text-xs font-semibold uppercase text-slate-300 mb-2 flex justify-between items-center">
+              <span>Pilih Layanan / Tindakan Medis SIMRS</span>
+              <span className="text-[10px] text-emerald-400 font-normal">Klik untuk memilih & atur Qty unit</span>
             </label>
             <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
               {tarifs.map((t) => {
-                const isSelected = selectedTarifIds.includes(t.ID || t.id);
+                const targetId = t.ID || t.id;
+                const isSelected = selectedTarifIds.includes(targetId);
                 const name = t.action_name || t.nama || 'Tindakan Medis';
-                const price = typeof t.amount === 'number' ? t.amount : (t.amount ? parseFloat(t.amount) : (t.harga || 0));
-                const code = t.kode || t.ID || t.id;
+                const unitPrice = typeof t.amount === 'number' ? t.amount : (t.amount ? parseFloat(t.amount) : (t.harga || 0));
+                const code = t.kode || targetId;
+                const qty = tarifQuantities[targetId] || 1;
+                const itemSubtotal = unitPrice * qty;
 
                 return (
                   <div
-                    key={t.ID || t.id}
-                    onClick={() => handleTarifToggle(t.ID || t.id)}
+                    key={targetId}
+                    onClick={() => handleTarifToggle(targetId)}
                     className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
                       isSelected
                         ? 'bg-emerald-950/60 border-emerald-500/50 text-white font-semibold'
@@ -483,11 +507,42 @@ export const BillingsPage = () => {
                   >
                     <div>
                       <span className="font-semibold text-slate-100">{name}</span>
-                      <span className="text-[10px] text-slate-400 block font-mono">Ref Kode: #{code}</span>
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        Ref Kode: #{code} • @ Rp {unitPrice.toLocaleString('id-ID')}
+                      </span>
                     </div>
-                    <span className="font-mono font-semibold text-emerald-400">
-                      Rp {price.toLocaleString('id-ID')}
-                    </span>
+
+                    <div className="flex items-center gap-3">
+                      {isSelected && (
+                        <div
+                          className="flex items-center gap-1.5 bg-slate-950 border border-emerald-500/40 rounded-lg p-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => handleQuantityChange(targetId, -1, e)}
+                            className="w-5 h-5 rounded bg-slate-800 hover:bg-emerald-900 text-slate-200 hover:text-emerald-300 font-bold flex items-center justify-center text-xs transition-colors"
+                            title="Kurangi Qty"
+                          >
+                            -
+                          </button>
+                          <span className="w-8 text-center font-mono text-xs font-bold text-emerald-400">
+                            {qty}x
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleQuantityChange(targetId, 1, e)}
+                            className="w-5 h-5 rounded bg-slate-800 hover:bg-emerald-900 text-slate-200 hover:text-emerald-300 font-bold flex items-center justify-center text-xs transition-colors"
+                            title="Tambah Qty"
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                      <span className="font-mono font-semibold text-emerald-400">
+                        Rp {itemSubtotal.toLocaleString('id-ID')}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
