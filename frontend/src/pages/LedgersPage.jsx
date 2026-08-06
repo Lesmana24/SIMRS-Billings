@@ -109,10 +109,10 @@ export const LedgersPage = () => {
                 ledgers.map((l) => (
                   <tr key={l.ID || l.id}>
                     <td className="font-mono text-xs text-slate-400">#LDG-{l.ID || l.id}</td>
-                    <td className="font-mono text-xs font-semibold text-slate-200">#BILL-{l.medical_billing_id}</td>
+                    <td className="font-mono text-xs font-semibold text-slate-200">#BILL-{l.billing_id || l.medical_billing_id || l.BillingID || l.id}</td>
                     <td>
                       <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 font-semibold">
-                        <ArrowDownRight size={13} /> {l.type || 'DEBIT'}
+                        <ArrowDownRight size={13} /> {l.entry_type || l.type || 'DEBIT'}
                       </span>
                     </td>
                     <td className="text-xs text-slate-200">{l.description}</td>
