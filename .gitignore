@@ -18,3 +18,8 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+
+# agent
+.agents/
+graphify-agents/
+graphify-out/

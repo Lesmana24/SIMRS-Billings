@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Hospital, Lock, User, ArrowRight } from 'lucide-react';
+import { Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Toast } from '../components/ui/Toast';
+import { AuthLayout } from '../components/layout/AuthLayout';
+import { motion } from 'framer-motion';
 
 export const Login = ({ onSwitchToRegister }) => {
   const { login, loading } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'error' });
 
   const handleSubmit = async (e) => {
@@ -24,83 +27,83 @@ export const Login = ({ onSwitchToRegister }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#090d16]">
-      <div className="w-full max-w-md space-y-6 animate-fade-in">
-        {/* Logo & Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3.5 bg-emerald-950/60 text-emerald-400 rounded-2xl border border-emerald-500/30 shadow-lg mb-2">
-            <Hospital size={36} />
+    <AuthLayout 
+      title="SIMRS Billing Engine"
+      subtitle="Masuk ke Sistem Informasi Billing & Pembayaran Pasien"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            Username
+          </label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-400 transition-colors duration-200">
+              <User size={18} />
+            </div>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Masukkan username..."
+              className="glass-input glass-input-icon focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 transition-all duration-200"
+              required
+            />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">SIMRS Billing Engine</h1>
-          <p className="text-sm text-slate-400">Masuk ke Sistem Informasi Billing & Pembayaran Pasien</p>
         </div>
 
-        {/* Card Form */}
-        <div className="glass-panel p-8 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                Username
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <User size={18} />
-                </div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Masukkan username..."
-                  className="glass-input glass-input-icon"
-                  required
-                />
-              </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            Password
+          </label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-400 transition-colors duration-200">
+              <Lock size={18} />
             </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock size={18} />
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password..."
-                  className="glass-input glass-input-icon"
-                  required
-                />
-              </div>
-            </div>
-
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Masukkan password..."
+              className="glass-input glass-input-icon pr-10 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 transition-all duration-200"
+              required
+            />
             <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-emerald w-full py-3 text-sm disabled:opacity-50"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             >
-              {loading ? 'Memproses Login...' : 'Masuk ke Sistem'} <ArrowRight size={18} />
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-          </form>
-
-          <div className="text-center pt-4 border-t border-slate-800">
-            <p className="text-xs text-slate-400">
-              Belum punya akun pasien?{' '}
-              <button
-                type="button"
-                onClick={onSwitchToRegister}
-                className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
-              >
-                Daftar Akun Baru
-              </button>
-            </p>
           </div>
         </div>
 
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'error' })} />
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          type="submit"
+          disabled={loading}
+          className="btn btn-emerald btn-shimmer group w-full py-3 text-sm disabled:opacity-50 font-bold shadow-lg shadow-emerald-950/60 hover:shadow-emerald-900/90 transition-all duration-200 cursor-pointer"
+        >
+          <span>{loading ? 'Memproses Login...' : 'Masuk ke Sistem'}</span>
+          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-200" />
+        </motion.button>
+      </form>
+
+      <div className="text-center pt-4 border-t border-slate-800/80">
+        <p className="text-xs text-slate-400">
+          Belum punya akun pasien?{' '}
+          <button
+            type="button"
+            onClick={onSwitchToRegister}
+            className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors cursor-pointer underline underline-offset-4 decoration-emerald-500/40 hover:decoration-emerald-400"
+          >
+            Daftar Akun Baru
+          </button>
+        </p>
       </div>
-    </div>
+
+      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'error' })} />
+    </AuthLayout>
   );
 };
