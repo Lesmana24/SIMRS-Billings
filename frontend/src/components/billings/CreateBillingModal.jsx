@@ -170,6 +170,22 @@ export const CreateBillingModal = ({
               <option value="Tanpa Asuransi (Mandiri)">Tanpa Asuransi (Mandiri)</option>
               <option value="Lainnya">Lainnya...</option>
             </select>
+
+            {insuranceType === 'Lainnya' && (
+              <div className="mt-2 animate-fade-in">
+                <label className="block text-[10px] font-mono font-bold uppercase text-[var(--text-muted)] mb-1">
+                  Nama Penyedia Asuransi Swasta (Lainnya)
+                </label>
+                <input
+                  type="text"
+                  value={customInsuranceName}
+                  onChange={(e) => setCustomInsuranceName(e.target.value)}
+                  placeholder="Masukkan nama penyedia asuransi (contoh: Sequis Life, Generali)..."
+                  className="glass-input text-xs"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {!isNoInsurance && (
