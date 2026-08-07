@@ -122,41 +122,48 @@ export const BillingsPage = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
-            Transaksi Medical Billing SIMRS
-          </h2>
-          <p className="text-xs text-[var(--text-secondary)]">Pengelolaan tagihan tindakan medis, verifikasi klaim penjamin, dan otorisasi kasir.</p>
+    <div className="space-y-8 animate-fade-in">
+      {/* Editorial Page Header Banner */}
+      <div className="border-b border-[var(--border-color)] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="badge badge-paid font-mono">Simrs Financial Ledger</span>
+            <span className="text-xs font-mono text-[var(--text-muted)]">• Total: {totalRows} Record Tagihan</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-serif-title font-bold text-[var(--text-heading)] tracking-tight">
+            Transaksi Medical Billing Pasien
+          </h1>
+          <p className="text-sm text-[var(--text-secondary)] max-w-2xl font-sans leading-relaxed">
+            Pengelolaan tagihan rincian tindakan medis, verifikasi klaim subsidi penjamin, dan otorisasi kasir terlindungi 2FA.
+          </p>
         </div>
+
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="btn btn-emerald flex items-center gap-1.5 cursor-pointer shadow-md"
+          className="btn btn-emerald btn-pill flex items-center gap-2 cursor-pointer shadow-md self-start md:self-auto"
         >
           <Plus size={16} /> Terbitkan Tagihan Baru
         </button>
       </div>
 
-      {/* Control Filter Panel */}
-      <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-3">
+      {/* Control Filter Panel - Asymmetrical Layout */}
+      <div className="glass-panel p-4 flex flex-col sm:flex-row items-center gap-4">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Cari pasien (contoh: Budi, BILL-102)..."
-            className="glass-input glass-input-icon"
+            placeholder="Cari nama pasien atau No. Ref Tagihan (#BILL-102)..."
+            className="glass-input glass-input-icon font-sans text-xs"
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter size={15} className="text-[var(--text-secondary)]" />
+          <Filter size={15} className="text-[var(--text-muted)]" />
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="glass-input sm:w-44 text-[var(--text-primary)] bg-[var(--bg-input)]"
+            className="glass-input sm:w-48 text-[var(--text-primary)] bg-[var(--bg-input)] font-mono text-xs"
           >
             <option value="">Semua Status Otorisasi</option>
             <option value="PENDING">PENDING (Belum Lunas)</option>
@@ -165,8 +172,8 @@ export const BillingsPage = () => {
         </div>
       </div>
 
-      {/* Primary SIMRS Table */}
-      <div className="glass-panel p-4">
+      {/* Primary SIMRS Table Panel */}
+      <div className="glass-panel p-5 space-y-4">
         <div className="table-container">
           <table className="table">
             <thead>
@@ -184,19 +191,19 @@ export const BillingsPage = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8">Memuat data transaksi billing...</td>
+                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8 font-mono text-xs">Memuat data transaksi billing...</td>
                 </tr>
               ) : billings.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8">Tidak ada catatan tagihan ditemukan.</td>
+                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8 font-mono text-xs">Tidak ada catatan tagihan ditemukan.</td>
                 </tr>
               ) : (
                 billings.map((b) => {
                   const isPaid = b.status === 'PAID';
                   return (
                     <tr key={b.ID || b.id}>
-                      <td className="font-mono text-xs text-[var(--text-secondary)]">#BILL-{b.ID || b.id}</td>
-                      <td className="font-semibold text-[var(--text-heading)]">{b.patient_name}</td>
+                      <td className="font-mono text-xs text-[var(--text-muted)] font-semibold">#BILL-{b.ID || b.id}</td>
+                      <td className="font-bold text-[var(--text-heading)]">{b.patient_name}</td>
                       <td className="font-mono text-xs text-[var(--text-primary)]">
                         Rp {(b.total_amount || 0).toLocaleString('id-ID')}
                       </td>
