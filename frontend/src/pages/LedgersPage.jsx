@@ -75,7 +75,7 @@ export const LedgersPage = () => {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Cari mutasi pembukuan (contoh: Lesmana, BILL-102, Cash)..."
+            placeholder="Cari mutasi pembukuan (BILL-102, Cash)..."
             className="glass-input glass-input-icon"
           />
         </div>

@@ -47,9 +47,9 @@ export const AuthLayout = ({ children, title, subtitle }) => {
       />
 
       {/* 3. Smooth Medical EKG Pulse Line SVG Wave Background */}
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-15 pointer-events-none overflow-hidden">
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-35 pointer-events-none overflow-hidden">
         <svg
-          className="w-full h-56 text-emerald-500/50"
+          className="w-full h-56 text-emerald-500/60"
           viewBox="0 0 1200 120"
           preserveAspectRatio="none"
           fill="none"
@@ -58,9 +58,9 @@ export const AuthLayout = ({ children, title, subtitle }) => {
           <path
             d="M0 60 H300 L310 40 L320 80 L335 10 L350 110 L365 50 L375 70 L385 60 H600 L610 30 L620 90 L635 0 L650 120 L665 45 L675 75 L685 60 H900 L910 40 L920 80 L935 15 L950 105 L965 50 L975 70 L985 60 H1200"
             stroke="currentColor"
-            strokeWidth="1.5"
-            strokeDasharray="1200"
-            className="animate-[dash_18s_linear_infinite]"
+            strokeWidth="2"
+            strokeDasharray="600"
+            className="animate-dash"
           />
         </svg>
       </div>
