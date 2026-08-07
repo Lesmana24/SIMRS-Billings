@@ -3,8 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"server/config"
-	"server/models"
 	"server/services"
 	"server/utils"
 	"strconv"
@@ -25,22 +23,11 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"CREATE_USER",
 		fmt.Sprintf("User #%d", user.ID),
 		fmt.Sprintf("Admin membuat akun baru '%s' dengan role '%s'", user.Username, user.Role),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -88,22 +75,11 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"UPDATE_USER",
 		fmt.Sprintf("User #%d", user.ID),
 		fmt.Sprintf("Admin memperbarui data akun '%s' (Role: %s)", user.Username, user.Role),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -115,33 +91,21 @@ func UpdateUser(c *gin.Context) {
 func DeleteUser(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 32)
 	existing, _ := services.GetUserByID(uint(id))
+	targetUsername := "User"
+	if existing != nil {
+		targetUsername = existing.Username
+	}
 
 	if err := services.DeleteUser(uint(id)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	targetUsername := "User"
-	if existing != nil {
-		targetUsername = existing.Username
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"DELETE_USER",
 		fmt.Sprintf("User #%d", id),
 		fmt.Sprintf("Admin menghapus akun '%s'", targetUsername),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{"message": "User berhasil dihapus"})
@@ -184,15 +148,11 @@ func UpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	userRole := c.GetString("role")
-	services.RecordAuditLog(
-		userID,
-		user.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"UPDATE_PROFILE",
 		fmt.Sprintf("User #%d", user.ID),
 		fmt.Sprintf("Pengguna '%s' memperbarui informasi profil diri", user.Username),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

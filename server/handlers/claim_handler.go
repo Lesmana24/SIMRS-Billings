@@ -3,8 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"server/config"
-	"server/models"
 	"server/services"
 	"strconv"
 
@@ -56,26 +54,11 @@ func UpdateClaimStatus(c *gin.Context) {
 	}
 
 	// Record Audit Log
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-	username := currentUser.Username
-	if username == "" {
-		username = "Petugas SIMRS"
-	}
-
-	services.RecordAuditLog(
-		userID,
-		username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"UPDATE_CLAIM_STATUS",
 		fmt.Sprintf("#BILL-%d", billing.ID),
 		fmt.Sprintf("Memperbarui status klaim BPJS pasien %s menjadi [%s] (Nominal: Rp %s)", billing.PatientName, req.Status, billing.BPJSAmount.StringFixed(0)),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

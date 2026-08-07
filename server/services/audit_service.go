@@ -5,6 +5,8 @@ import (
 	"server/config"
 	"server/models"
 	"server/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuditLogListResponse struct {
@@ -25,6 +27,27 @@ func RecordAuditLog(userID uint, username, role, action, resource, details, ip s
 		}
 		config.DB.Create(&log)
 	}()
+}
+
+// RecordFromContext automatically extracts UserID, Username, Role, and IPAddress from Gin Context
+func RecordFromContext(c *gin.Context, action, resource, details string) {
+	if c == nil {
+		return
+	}
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(uint)
+	role := c.GetString("role")
+	username := c.GetString("username")
+
+	if username == "" && userID > 0 {
+		var user models.User
+		if err := config.DB.Select("username").First(&user, userID).Error; err == nil {
+			username = user.Username
+		}
+	}
+
+	ip := c.ClientIP()
+	RecordAuditLog(userID, username, role, action, resource, details, ip)
 }
 
 func GetAllAuditLogs(search, action string, page, limit int) (*AuditLogListResponse, error) {

@@ -31,26 +31,11 @@ func CreateBilling(c *gin.Context) {
 	}
 
 	// Audit Log
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-	username := currentUser.Username
-	if username == "" {
-		username = "Petugas SIMRS"
-	}
-
-	services.RecordAuditLog(
-		userID,
-		username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"CREATE_BILLING",
 		fmt.Sprintf("#BILL-%d", billing.ID),
 		fmt.Sprintf("Membuat tagihan medis pasien %s (Total: Rp %s, Net: Rp %s)", billing.PatientName, billing.TotalAmount.StringFixed(0), billing.PatientAmount.StringFixed(0)),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -101,19 +86,11 @@ func SubmitProof(c *gin.Context) {
 		return
 	}
 
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"SUBMIT_PROOF",
 		fmt.Sprintf("#BILL-%d", billingID),
 		"Pasien mengunggah foto bukti transfer bank",
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -142,7 +119,6 @@ func PayBilling(c *gin.Context) {
 
 	userIDVal, _ := c.Get("user_id")
 	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
 	var currentUser models.User
 	if userID > 0 {
 		config.DB.First(&currentUser, userID)
@@ -225,19 +201,11 @@ func PayBilling(c *gin.Context) {
 		return
 	}
 
-	username := currentUser.Username
-	if username == "" {
-		username = "Kasir SIMRS"
-	}
-
-	services.RecordAuditLog(
-		userID,
-		username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"APPROVE_PAYMENT",
 		fmt.Sprintf("#BILL-%d", billing.ID),
 		fmt.Sprintf("Kasir menyetujui pelunasan tagihan %s (Metode: %s, Total Lunas: Rp %s) [2FA Verified]", billing.PatientName, billing.PaymentMethod, billing.PatientAmount.StringFixed(0)),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -255,22 +223,11 @@ func RejectBilling(c *gin.Context) {
 		return
 	}
 
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"REJECT_PAYMENT",
 		fmt.Sprintf("#BILL-%d", billingID),
 		fmt.Sprintf("Kasir menolak foto bukti transfer tagihan pasien %s", billing.PatientName),
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -333,22 +290,11 @@ func DeleteBilling(c *gin.Context) {
 		return
 	}
 
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"DELETE_BILLING",
 		fmt.Sprintf("#BILL-%d", id),
 		"Menghapus tagihan medis dari database",
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Tagihan berhasil dihapus"})
@@ -397,22 +343,11 @@ func DeletePaymentLedger(c *gin.Context) {
 		return
 	}
 
-	userIDVal, _ := c.Get("user_id")
-	userID, _ := userIDVal.(uint)
-	userRole := c.GetString("role")
-	var currentUser models.User
-	if userID > 0 {
-		config.DB.First(&currentUser, userID)
-	}
-
-	services.RecordAuditLog(
-		userID,
-		currentUser.Username,
-		userRole,
+	services.RecordFromContext(
+		c,
 		"DELETE_LEDGER",
 		fmt.Sprintf("#LEDGER-%d", id),
 		"Admin menghapus catatan mutasi kas pembukuan",
-		c.ClientIP(),
 	)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Catatan mutasi kas berhasil dihapus oleh Admin"})
