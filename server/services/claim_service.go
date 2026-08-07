@@ -33,9 +33,10 @@ func GetBPJSClaims(page, limit int, claimStatus, search, providerType string) ([
 
 	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > 0 OR insurance_claim > 0")
 
-	if providerType == "bpjs" {
+	switch providerType {
+	case "bpjs":
 		db = db.Where("LOWER(insurance_provider) LIKE ?", "%bpjs%")
-	} else if providerType == "swasta" {
+	case "swasta":
 		db = db.Where("LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "%bpjs%", "%tanpa asuransi%")
 	}
 
@@ -134,9 +135,10 @@ func GetClaimSummary(providerType string) (ClaimSummaryResponse, error) {
 
 	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > 0 OR insurance_claim > 0")
 
-	if providerType == "bpjs" {
+	switch providerType {
+	case "bpjs":
 		db = db.Where("LOWER(insurance_provider) LIKE ?", "%bpjs%")
-	} else if providerType == "swasta" {
+	case "swasta":
 		db = db.Where("LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "%bpjs%", "%tanpa asuransi%")
 	}
 
