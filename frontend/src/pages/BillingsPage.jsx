@@ -144,6 +144,7 @@ export const BillingsPage = () => {
       const found = tarifs.find((t) => (t.ID || t.id) === tId);
       const price = typeof found?.amount === 'number' ? found.amount : (found?.amount ? parseFloat(found.amount) : (found?.harga || 0));
       return {
+        action_id: Number(tId),
         tarif_id: Number(tId),
         item_name: found?.action_name || found?.nama || 'Tindakan Medis',
         quantity: Number(tarifQuantities[tId] || 1),
@@ -156,11 +157,14 @@ export const BillingsPage = () => {
     try {
       await billingApi.create({
         user_id: selectedPatientUserId ? Number(selectedPatientUserId) : 0,
+        patient_user_id: selectedPatientUserId ? Number(selectedPatientUserId) : 0,
         patient_name: patientName,
         insurance_type: finalInsuranceProvider,
         insurance_provider: finalInsuranceProvider,
         insurance_claim: effectiveClaimAmount,
         insurance_claim_amount: effectiveClaimAmount,
+        bpjs_claim: effectiveClaimAmount,
+        action_ids: selectedTarifIds.map(Number),
         items: itemsPayload,
       });
 

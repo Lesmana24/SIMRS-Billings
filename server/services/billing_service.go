@@ -13,6 +13,7 @@ import (
 
 type ActionItemInput struct {
 	ActionID uint `json:"action_id"`
+	TarifID  uint `json:"tarif_id"`
 	Quantity int  `json:"quantity"`
 }
 
@@ -77,15 +78,25 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 
 	if len(req.Items) > 0 {
 		for _, item := range req.Items {
-			qty := item.Quantity
-			if qty <= 0 {
-				qty = 1
+			id := item.ActionID
+			if id == 0 {
+				id = item.TarifID
 			}
-			actionQtyMap[item.ActionID] = qty
+			if id > 0 {
+				qty := item.Quantity
+				if qty <= 0 {
+					qty = 1
+				}
+				actionQtyMap[id] = qty
+			}
 		}
-	} else if len(req.ActionIDs) > 0 {
+	}
+
+	if len(actionQtyMap) == 0 && len(req.ActionIDs) > 0 {
 		for _, id := range req.ActionIDs {
-			actionQtyMap[id] = 1
+			if id > 0 {
+				actionQtyMap[id] = 1
+			}
 		}
 	}
 
