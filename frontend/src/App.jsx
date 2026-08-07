@@ -15,6 +15,7 @@ import { AnalyticsDashboard } from './pages/AnalyticsDashboard';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { ClaimsPage } from './pages/ClaimsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AmbientBackground } from './components/ui/AmbientBackground';
 import './App.css';
 
 const MainLayout = () => {
@@ -67,12 +68,13 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col font-sans antialiased overflow-hidden transition-colors duration-200">
+    <div className="h-screen w-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col font-sans antialiased overflow-hidden transition-colors duration-200 relative">
+      <AmbientBackground />
       <Navbar 
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
         onOpenProfile={() => setActiveTab('profile')}
       />
-      <div className="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden relative z-10">
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
