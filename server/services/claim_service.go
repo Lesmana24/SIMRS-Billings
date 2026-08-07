@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"server/config"
 	"server/models"
+	"server/repository"
 	"server/utils"
 	"time"
 
@@ -31,18 +32,12 @@ func GetBPJSClaims(page, limit int, claimStatus, search, providerType string) ([
 	var billings []models.MedicalBilling
 	var totalRows int64
 
-	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > 0 OR insurance_claim > 0")
-
-	switch providerType {
-	case "bpjs":
-		db = db.Where("LOWER(insurance_provider) LIKE ?", "%bpjs%")
-	case "swasta":
-		db = db.Where("LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "%bpjs%", "%tanpa asuransi%")
-	}
-
-	if claimStatus != "" {
-		db = db.Where("bpjs_claim_status = ?", claimStatus)
-	}
+	db := config.DB.Model(&models.MedicalBilling{}).
+		Scopes(
+			repository.WithInsuranceClaim(),
+			repository.ByProviderType(providerType),
+			repository.ByClaimStatus(claimStatus),
+		)
 
 	if search != "" {
 		searchTerm := "%" + search + "%"
@@ -133,14 +128,11 @@ func GetClaimSummary(providerType string) (ClaimSummaryResponse, error) {
 		Count           int64
 	}
 
-	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > 0 OR insurance_claim > 0")
-
-	switch providerType {
-	case "bpjs":
-		db = db.Where("LOWER(insurance_provider) LIKE ?", "%bpjs%")
-	case "swasta":
-		db = db.Where("LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "%bpjs%", "%tanpa asuransi%")
-	}
+	db := config.DB.Model(&models.MedicalBilling{}).
+		Scopes(
+			repository.WithInsuranceClaim(),
+			repository.ByProviderType(providerType),
+		)
 
 	var results []Result
 	err := db.Select("COALESCE(bpjs_claim_status, 'UNCLAIMED') as bpjs_claim_status, SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)) as total, COUNT(*) as count").
@@ -174,7 +166,10 @@ func GetClaimSummary(providerType string) (ClaimSummaryResponse, error) {
 
 func SyncClaimLedgers() {
 	var billings []models.MedicalBilling
-	config.DB.Where("bpjs_claim_status = ? AND (bpjs_amount > 0 OR insurance_claim > 0)", "PAID").Find(&billings)
+	config.DB.Scopes(
+		repository.ByClaimStatus("PAID"),
+		repository.WithInsuranceClaim(),
+	).Find(&billings)
 
 	for _, b := range billings {
 		claimAmt := b.InsuranceClaim

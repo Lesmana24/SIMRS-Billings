@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"server/config"
 	"server/models"
+	"server/repository"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -100,15 +101,15 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 	// 5. BPJS Split vs Private Insurance vs Patient Direct Paid for Selected Month
 	var totalBPJS, totalPrivateIns, totalPatient, totalGross decimal.Decimal
 	db.Model(&models.MedicalBilling{}).
-		Where("bpjs_claim_status = ? AND created_at >= ? AND created_at < ? AND LOWER(insurance_provider) LIKE ?", "PAID", startOfMonth, endOfMonth, "%bpjs%").
+		Scopes(repository.ByClaimStatus("PAID"), repository.ByDateRange(startOfMonth, endOfMonth), repository.ByProviderType("bpjs")).
 		Select("COALESCE(SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)), 0)").Scan(&totalBPJS)
 
 	db.Model(&models.MedicalBilling{}).
-		Where("bpjs_claim_status = ? AND created_at >= ? AND created_at < ? AND LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "PAID", startOfMonth, endOfMonth, "%bpjs%", "%tanpa asuransi%").
+		Scopes(repository.ByClaimStatus("PAID"), repository.ByDateRange(startOfMonth, endOfMonth), repository.ByProviderType("swasta")).
 		Select("COALESCE(SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)), 0)").Scan(&totalPrivateIns)
 
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
+		Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(startOfMonth, endOfMonth)).
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&totalPatient)
 
 	totalGross = totalBPJS.Add(totalPrivateIns).Add(totalPatient)
@@ -129,8 +130,14 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 
 	// 6. Counts for Selected Month
 	var paidCount, pendingCount int64
-	db.Model(&models.MedicalBilling{}).Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).Count(&paidCount)
-	db.Model(&models.MedicalBilling{}).Where("status != ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).Count(&pendingCount)
+	db.Model(&models.MedicalBilling{}).
+		Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(startOfMonth, endOfMonth)).
+		Count(&paidCount)
+
+	db.Model(&models.MedicalBilling{}).
+		Scopes(repository.ByDateRange(startOfMonth, endOfMonth)).
+		Where("status != ?", "PAID").
+		Count(&pendingCount)
 
 	// 7. Daily Trends for past 7 days
 	var dailyTrends []DailyTrend
@@ -143,23 +150,23 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 		var cnt int64
 
 		db.Model(&models.MedicalBilling{}).
-			Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", dayStart, dayEnd).
+			Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(dayStart, dayEnd)).
 			Select("COALESCE(SUM(total_amount), 0)").Scan(&totAmt)
 
 		db.Model(&models.MedicalBilling{}).
-			Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", dayStart, dayEnd).
+			Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(dayStart, dayEnd)).
 			Select("COALESCE(SUM(patient_amount), 0)").Scan(&patAmt)
 
 		db.Model(&models.MedicalBilling{}).
-			Where("status = ? AND created_at >= ? AND created_at < ? AND (insurance_provider = ? OR insurance_provider IS NULL OR insurance_provider = '')", "PAID", dayStart, dayEnd, "BPJS Kesehatan").
-			Select("COALESCE(SUM(bpjs_amount), 0)").Scan(&bpjsAmt)
+			Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(dayStart, dayEnd), repository.ByProviderType("bpjs")).
+			Select("COALESCE(SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)), 0)").Scan(&bpjsAmt)
 
 		db.Model(&models.MedicalBilling{}).
-			Where("status = ? AND created_at >= ? AND created_at < ? AND insurance_provider != ? AND insurance_provider != ''", "PAID", dayStart, dayEnd, "BPJS Kesehatan").
-			Select("COALESCE(SUM(insurance_claim), 0)").Scan(&insAmt)
+			Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(dayStart, dayEnd), repository.ByProviderType("swasta")).
+			Select("COALESCE(SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)), 0)").Scan(&insAmt)
 
 		db.Model(&models.MedicalBilling{}).
-			Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", dayStart, dayEnd).
+			Scopes(repository.ByBillingStatus("PAID"), repository.ByDateRange(dayStart, dayEnd)).
 			Count(&cnt)
 
 		dailyTrends = append(dailyTrends, DailyTrend{
