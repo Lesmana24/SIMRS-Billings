@@ -294,7 +294,7 @@ export const BillingsPage = () => {
           onClose={() => setTwoFactorBilling(null)}
           onVerified={handle2FAVerified}
           title="Otorisasi Kasir 2FA PIN"
-          description={`Masukkan 6-digit Security PIN akun Anda untuk menyelesaikan otorisasi pembayaran #${twoFactorBilling.billing.ID || twoFactorBilling.billing.id}.`}
+          description={`Masukkan 4-6 digit Security PIN akun Anda untuk menyelesaikan otorisasi pembayaran #${twoFactorBilling.billing.ID || twoFactorBilling.billing.id}.`}
         />
       )}
 

@@ -197,12 +197,8 @@ func PayBilling(c *gin.Context) {
 			if paymentMethod == "" {
 				paymentMethod = pb.PaymentMethod
 			}
-			if pb.CashAmount.GreaterThan(decimal.Zero) {
-				cashAmt = pb.CashAmount
-			}
-			if pb.TransferAmount.GreaterThan(decimal.Zero) {
-				transferAmt = pb.TransferAmount
-			}
+			cashAmt = pb.CashAmount
+			transferAmt = pb.TransferAmount
 			if twoFactorPIN == "" {
 				twoFactorPIN = pb.TwoFactorPIN
 			}

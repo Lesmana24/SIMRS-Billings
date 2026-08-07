@@ -10,8 +10,9 @@ export const TwoFactorModal = ({
   isProcessing,
   title,
   actionTitle,
+  description,
 }) => {
-  const [pin, setPin] = useState('123456');
+  const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
   const handleCallback = onConfirm || onVerified;
@@ -19,8 +20,8 @@ export const TwoFactorModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!pin || pin.length < 6) {
-      setError('Masukkan 6 digit kode PIN 2FA Keamanan');
+    if (!pin || pin.length < 4 || pin.length > 6) {
+      setError('Masukkan 4 - 6 digit kode PIN 2FA Keamanan');
       return;
     }
     setError('');
@@ -38,26 +39,29 @@ export const TwoFactorModal = ({
           </div>
           <h4 className="text-sm font-bold text-[var(--text-heading)]">Verifikasi Otorisasi Kasir & Admin</h4>
           <p className="text-xs text-[var(--text-secondary)]">
-            Demi keamanan transaksi dan audit trail sistem, masukkan 6 digit Security PIN akun Anda untuk melanjutkan pelunasan tagihan.
+            {description || 'Demi keamanan transaksi dan audit trail sistem, masukkan 4-6 digit Security PIN akun Anda untuk melanjutkan otorisasi.'}
           </p>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1 flex items-center gap-1">
-            <ShieldCheck size={14} className="text-emerald-500" /> Kode 2FA Security PIN (6 Digit)
+          <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+            <ShieldCheck size={14} className="text-emerald-500" /> Kode 2FA Security PIN (4 - 6 Digit)
           </label>
           <input
             type="password"
             maxLength={6}
             value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            placeholder="123456"
-            className="glass-input font-mono text-center text-lg tracking-[0.4em] font-bold py-2.5"
+            onChange={(e) => {
+              setPin(e.target.value.replace(/\D/g, ''));
+              setError('');
+            }}
+            placeholder="Masukkan PIN (4-6 digit)..."
+            className="glass-input font-mono text-center text-lg tracking-[0.3em] font-bold py-2.5"
             required
             autoFocus
           />
           <p className="text-[11px] text-[var(--text-secondary)] mt-1 text-center font-mono">
-            📌 Default Testing PIN Admin/Staff: <code className="text-emerald-600 dark:text-emerald-300 font-bold">123456</code>
+            📌 Default Testing PIN Admin: <code className="text-emerald-600 dark:text-emerald-300 font-bold">1234</code> | Testing PIN Staff: <code className="text-emerald-600 dark:text-emerald-300 font-bold">123456</code>
           </p>
         </div>
 
@@ -68,10 +72,10 @@ export const TwoFactorModal = ({
         )}
 
         <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
-          <button type="button" onClick={onClose} className="btn btn-secondary btn-sm cursor-pointer" disabled={isProcessing}>
+          <button type="button" onClick={onClose} className="btn btn-secondary btn-sm cursor-pointer font-mono" disabled={isProcessing}>
             Batal
           </button>
-          <button type="submit" className="btn btn-emerald btn-sm flex items-center gap-1.5 cursor-pointer shadow-md" disabled={isProcessing}>
+          <button type="submit" className="btn btn-emerald btn-sm flex items-center gap-1.5 cursor-pointer shadow-md font-mono" disabled={isProcessing}>
             <CheckCircle2 size={16} /> {isProcessing ? 'Verifikasi...' : 'Konfirmasi & Lunaskan'}
           </button>
         </div>
