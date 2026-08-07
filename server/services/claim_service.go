@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"server/config"
 	"server/models"
 	"server/utils"
@@ -69,6 +70,7 @@ func UpdateClaimStatus(id uint, newStatus string) (*models.MedicalBilling, error
 		return nil, errors.New("Tagihan ini tidak memiliki porsi klaim penjamin/asuransi")
 	}
 
+	previousStatus := billing.BPJSClaimStatus
 	billing.BPJSClaimStatus = newStatus
 
 	now := time.Now()
@@ -77,6 +79,34 @@ func UpdateClaimStatus(id uint, newStatus string) (*models.MedicalBilling, error
 	}
 	if newStatus == "PAID" {
 		billing.BPJSPaymentDate = &now
+
+		// If patient portion is 0 or already paid, update overall billing status to PAID
+		if billing.PatientAmount.LessThanOrEqual(decimal.Zero) {
+			billing.Status = "PAID"
+		}
+
+		// Record PaymentLedger (Jurnal Mutasi Kas) if claim status transitioned to PAID
+		if previousStatus != "PAID" {
+			claimAmt := billing.InsuranceClaim
+			if claimAmt.IsZero() {
+				claimAmt = billing.BPJSAmount
+			}
+
+			if claimAmt.GreaterThan(decimal.Zero) {
+				provider := billing.InsuranceProvider
+				if provider == "" {
+					provider = "BPJS Kesehatan"
+				}
+
+				ledger := models.PaymentLedger{
+					BillingID:   billing.ID,
+					EntryType:   "DEBIT",
+					Amount:      claimAmt,
+					Description: fmt.Sprintf("Pencairan dana klaim %s pasien %s (#BILL-%d)", provider, billing.PatientName, billing.ID),
+				}
+				config.DB.Create(&ledger)
+			}
+		}
 	}
 
 	if err := config.DB.Save(&billing).Error; err != nil {
@@ -138,4 +168,45 @@ func GetClaimSummary(providerType string) (ClaimSummaryResponse, error) {
 	}
 
 	return summary, nil
+}
+
+func SyncClaimLedgers() {
+	var billings []models.MedicalBilling
+	config.DB.Where("bpjs_claim_status = ? AND (bpjs_amount > 0 OR insurance_claim > 0)", "PAID").Find(&billings)
+
+	for _, b := range billings {
+		claimAmt := b.InsuranceClaim
+		if claimAmt.IsZero() {
+			claimAmt = b.BPJSAmount
+		}
+
+		if claimAmt.GreaterThan(decimal.Zero) {
+			var count int64
+			provider := b.InsuranceProvider
+			if provider == "" {
+				provider = "BPJS Kesehatan"
+			}
+			desc := fmt.Sprintf("Pencairan dana klaim %s pasien %s (#BILL-%d)", provider, b.PatientName, b.ID)
+
+			config.DB.Model(&models.PaymentLedger{}).
+				Where("billing_id = ? AND description LIKE ?", b.ID, "%Pencairan dana klaim%").
+				Count(&count)
+
+			if count == 0 {
+				ledger := models.PaymentLedger{
+					BillingID:   b.ID,
+					EntryType:   "DEBIT",
+					Amount:      claimAmt,
+					Description: desc,
+					CreatedAt:   b.CreatedAt,
+				}
+				config.DB.Create(&ledger)
+
+				if b.PatientAmount.LessThanOrEqual(decimal.Zero) && b.Status != "PAID" {
+					b.Status = "PAID"
+					config.DB.Save(&b)
+				}
+			}
+		}
+	}
 }

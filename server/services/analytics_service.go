@@ -74,43 +74,44 @@ func GetAnalyticsSummary(month, year int) (*AnalyticsSummary, error) {
 
 	var dailyRev, weeklyRev, monthlyRev, totalRev decimal.Decimal
 
-	// 1. Daily Revenue (Today)
-	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ?", "PAID", startOfToday).
-		Select("COALESCE(SUM(patient_amount), 0)").Scan(&dailyRev)
+	// Auto sync ledgers for any PAID claims
+	SyncClaimLedgers()
+
+	// 1. Daily Revenue (Today) - Actual Cash Receipts in Ledger
+	db.Model(&models.PaymentLedger{}).
+		Where("entry_type = ? AND created_at >= ?", "DEBIT", startOfToday).
+		Select("COALESCE(SUM(amount), 0)").Scan(&dailyRev)
 
 	// 2. Weekly Revenue (Past 7 Days)
-	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ?", "PAID", sevenDaysAgo).
-		Select("COALESCE(SUM(patient_amount), 0)").Scan(&weeklyRev)
+	db.Model(&models.PaymentLedger{}).
+		Where("entry_type = ? AND created_at >= ?", "DEBIT", sevenDaysAgo).
+		Select("COALESCE(SUM(amount), 0)").Scan(&weeklyRev)
 
 	// 3. Monthly Revenue (Selected Month & Year)
-	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
-		Select("COALESCE(SUM(patient_amount), 0)").Scan(&monthlyRev)
+	db.Model(&models.PaymentLedger{}).
+		Where("entry_type = ? AND created_at >= ? AND created_at < ?", "DEBIT", startOfMonth, endOfMonth).
+		Select("COALESCE(SUM(amount), 0)").Scan(&monthlyRev)
 
 	// 4. All Time Total Revenue
-	db.Model(&models.MedicalBilling{}).
-		Where("status = ?", "PAID").
-		Select("COALESCE(SUM(patient_amount), 0)").Scan(&totalRev)
+	db.Model(&models.PaymentLedger{}).
+		Where("entry_type = ?", "DEBIT").
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalRev)
 
 	// 5. BPJS Split vs Private Insurance vs Patient Direct Paid for Selected Month
 	var totalBPJS, totalPrivateIns, totalPatient, totalGross decimal.Decimal
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ? AND created_at < ? AND (insurance_provider = ? OR insurance_provider IS NULL OR insurance_provider = '')", "PAID", startOfMonth, endOfMonth, "BPJS Kesehatan").
-		Select("COALESCE(SUM(bpjs_amount), 0)").Scan(&totalBPJS)
+		Where("bpjs_claim_status = ? AND created_at >= ? AND created_at < ? AND LOWER(insurance_provider) LIKE ?", "PAID", startOfMonth, endOfMonth, "%bpjs%").
+		Select("COALESCE(SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)), 0)").Scan(&totalBPJS)
 
 	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ? AND created_at < ? AND insurance_provider != ? AND insurance_provider != ''", "PAID", startOfMonth, endOfMonth, "BPJS Kesehatan").
-		Select("COALESCE(SUM(insurance_claim), 0)").Scan(&totalPrivateIns)
+		Where("bpjs_claim_status = ? AND created_at >= ? AND created_at < ? AND LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "PAID", startOfMonth, endOfMonth, "%bpjs%", "%tanpa asuransi%").
+		Select("COALESCE(SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)), 0)").Scan(&totalPrivateIns)
 
 	db.Model(&models.MedicalBilling{}).
 		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
 		Select("COALESCE(SUM(patient_amount), 0)").Scan(&totalPatient)
 
-	db.Model(&models.MedicalBilling{}).
-		Where("status = ? AND created_at >= ? AND created_at < ?", "PAID", startOfMonth, endOfMonth).
-		Select("COALESCE(SUM(total_amount), 0)").Scan(&totalGross)
+	totalGross = totalBPJS.Add(totalPrivateIns).Add(totalPatient)
 
 	bpjsPct := 0.0
 	privateInsPct := 0.0
