@@ -76,10 +76,14 @@ server/
 ├── seeders/
 │   └── seeder.go            # Data Awal Master User & Tarif Layanan
 ├── services/
-│   ├── billing_service.go   # Business Logic Billing, Ledger, & Payment
+│   ├── analytics_service.go # Business Logic Analytics, Grafik, & Export PDF/Excel/CSV
+│   ├── audit_service.go     # Business Logic Audit Trail System
+│   ├── billing_service.go   # Business Logic Tagihan Medis (CRUD)
 │   ├── claim_service.go     # Business Logic Klaim BPJS & Asuransi Swasta
-│   ├── tarif_service.go     # Business Logic Tarif
-│   └── user_service.go      # Business Logic User
+│   ├── ledger_service.go    # Business Logic Jurnal Mutasi Kas (Ledgers)
+│   ├── payment_service.go   # Business Logic Otorisasi Pembayaran & Idempotensi
+│   ├── tarif_service.go     # Business Logic Master Tarif
+│   └── user_service.go      # Business Logic User & Profil
 ├── utils/
 │   ├── jwt.go               # Generator & Helper Token JWT
 │   ├── pagination.go        # Kalkulator Pagination & Filter Param

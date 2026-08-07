@@ -8,7 +8,6 @@ import (
 	"server/utils"
 
 	"github.com/shopspring/decimal"
-	"gorm.io/gorm"
 )
 
 type ActionItemInput struct {
@@ -33,15 +32,6 @@ type UpdateBillingRequest struct {
 	InsuranceProvider string          `json:"insurance_provider"`
 	InsuranceClaim    decimal.Decimal `json:"insurance_claim"`
 	Status            string          `json:"status"`
-}
-
-type ProcessPaymentRequest struct {
-	BillingID      uint            `json:"billing_id"`
-	IdempotencyKey string          `json:"idempotency_key"`
-	ProofURL       string          `json:"proof_url"`
-	PaymentMethod  string          `json:"payment_method"`
-	CashAmount     decimal.Decimal `json:"cash_amount"`
-	TransferAmount decimal.Decimal `json:"transfer_amount"`
 }
 
 func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
@@ -161,162 +151,6 @@ func CreateBilling(req *CreateBillingRequest) (*models.MedicalBilling, error) {
 	return &billing, nil
 }
 
-func ProcessPayment(billingID uint, idempotencyKey string, proofURL string) (*models.MedicalBilling, error) {
-	return ProcessPaymentDetailed(&ProcessPaymentRequest{
-		BillingID:      billingID,
-		IdempotencyKey: idempotencyKey,
-		ProofURL:       proofURL,
-	})
-}
-
-func ProcessPaymentDetailed(req *ProcessPaymentRequest) (*models.MedicalBilling, error) {
-	var billing models.MedicalBilling
-	err := config.DB.Transaction(func(tx *gorm.DB) error {
-		var existingLog models.IdempotencyLog
-		if err := tx.Where("idempotency_key = ?", req.IdempotencyKey).First(&existingLog).Error; err == nil {
-			return tx.Preload("Items").First(&billing, req.BillingID).Error
-		}
-		if err := tx.First(&billing, req.BillingID).Error; err != nil {
-			return errors.New("Tagihan tidak ditemukan")
-		}
-		if billing.Status == "PAID" {
-			return errors.New("Tagihan sudah Lunas sebelumnya")
-		}
-
-		method := req.PaymentMethod
-		if method == "" {
-			if req.ProofURL != "" {
-				method = "TRANSFER"
-			} else {
-				method = "CASH"
-			}
-		}
-
-		cashAmt := req.CashAmount
-		transferAmt := req.TransferAmount
-
-		switch method {
-		case "SPLIT":
-			if !cashAmt.Add(transferAmt).Equal(billing.PatientAmount) {
-				return fmt.Errorf("Jumlah pembayaran split (Kasir: Rp %s + Transfer: Rp %s = Rp %s) harus SAMA PERSIS dengan total tagihan bersih (Rp %s)",
-					cashAmt.StringFixed(0), transferAmt.StringFixed(0), cashAmt.Add(transferAmt).StringFixed(0), billing.PatientAmount.StringFixed(0))
-			}
-		case "CASH":
-			cashAmt = billing.PatientAmount
-			transferAmt = decimal.Zero
-		case "TRANSFER", "EDC":
-			transferAmt = billing.PatientAmount
-			cashAmt = decimal.Zero
-		}
-
-		updates := map[string]interface{}{
-			"status":           "PAID",
-			"proof_of_payment": req.ProofURL,
-			"payment_method":   method,
-			"cash_amount":      cashAmt,
-			"transfer_amount":  transferAmt,
-		}
-
-		if err := tx.Model(&billing).Updates(updates).Error; err != nil {
-			return err
-		}
-
-		// Write Payment Ledgers
-		if method == "SPLIT" {
-			if !cashAmt.IsZero() {
-				ledgerCash := models.PaymentLedger{
-					BillingID:   req.BillingID,
-					EntryType:   "DEBIT (CASH)",
-					Amount:      cashAmt,
-					Description: fmt.Sprintf("Pembayaran Kasir Tunai (Split) pasien %s", billing.PatientName),
-				}
-				if err := tx.Create(&ledgerCash).Error; err != nil {
-					return err
-				}
-			}
-			if !transferAmt.IsZero() {
-				ledgerTransfer := models.PaymentLedger{
-					BillingID:   req.BillingID,
-					EntryType:   "DEBIT (TRANSFER)",
-					Amount:      transferAmt,
-					Description: fmt.Sprintf("Pembayaran Transfer Bank/EDC (Split) pasien %s", billing.PatientName),
-				}
-				if err := tx.Create(&ledgerTransfer).Error; err != nil {
-					return err
-				}
-			}
-		} else {
-			ledger := models.PaymentLedger{
-				BillingID:   req.BillingID,
-				EntryType:   fmt.Sprintf("DEBIT (%s)", method),
-				Amount:      billing.PatientAmount,
-				Description: fmt.Sprintf("Pembayaran Tagihan (%s) pasien %s", method, billing.PatientName),
-			}
-			if err := tx.Create(&ledger).Error; err != nil {
-				return err
-			}
-		}
-
-		logEntry := models.IdempotencyLog{
-			IdempotencyKey: req.IdempotencyKey,
-			ResponseBody:   "PAID",
-		}
-		if err := tx.Create(&logEntry).Error; err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return GetBillingByID(req.BillingID)
-}
-
-func SubmitPaymentProof(billingID uint, proofURL string) (*models.MedicalBilling, error) {
-	var billing models.MedicalBilling
-	if err := config.DB.First(&billing, billingID).Error; err != nil {
-		return nil, errors.New("Tagihan tidak ditemukan")
-	}
-
-	if billing.Status == "PAID" {
-		return nil, errors.New("Tagihan sudah Lunas sebelumnya")
-	}
-
-	updates := map[string]interface{}{
-		"status":           "WAITING_VERIFICATION",
-		"proof_of_payment": proofURL,
-		"payment_method":   "TRANSFER",
-	}
-
-	if err := config.DB.Model(&billing).Updates(updates).Error; err != nil {
-		return nil, fmt.Errorf("Gagal memperbarui bukti pembayaran: %w", err)
-	}
-
-	return GetBillingByID(billingID)
-}
-
-func RejectPayment(billingID uint) (*models.MedicalBilling, error) {
-	var billing models.MedicalBilling
-	if err := config.DB.First(&billing, billingID).Error; err != nil {
-		return nil, errors.New("Tagihan tidak ditemukan")
-	}
-
-	if billing.Status == "PAID" {
-		return nil, errors.New("Tagihan sudah Lunas, tidak dapat ditolak")
-	}
-
-	updates := map[string]interface{}{
-		"status":           "REJECTED",
-		"proof_of_payment": "",
-	}
-
-	if err := config.DB.Model(&billing).Select("status", "proof_of_payment").Updates(updates).Error; err != nil {
-		return nil, fmt.Errorf("Gagal menolak pembayaran: %w", err)
-	}
-
-	return GetBillingByID(billingID)
-}
-
 func GetAllBillings(search, statusFilter string, page, limit int) ([]models.MedicalBilling, utils.Pagination, error) {
 	var billings []models.MedicalBilling
 	var totalRows int64
@@ -431,45 +265,4 @@ func GetPatientBillingByID(patientUserID, billingID uint) (*models.MedicalBillin
 		return nil, errors.New("Tagihan tidak ditemukan atau tidak memiliki akses")
 	}
 	return &billing, nil
-}
-
-func GetPaymentLedgers(search, entryTypeFilter string, page, limit int) ([]models.PaymentLedger, utils.Pagination, error) {
-	var ledgers []models.PaymentLedger
-	var totalRows int64
-
-	query := config.DB.Model(&models.PaymentLedger{})
-	if search != "" {
-		query = query.Where("description ILIKE ?", "%"+search+"%")
-	}
-	if entryTypeFilter != "" {
-		query = query.Where("entry_type ILIKE ?", entryTypeFilter)
-	}
-
-	if err := query.Count(&totalRows).Error; err != nil {
-		return nil, utils.Pagination{}, err
-	}
-
-	offset := (page - 1) * limit
-	if err := query.Offset(offset).Limit(limit).Order("id desc").Find(&ledgers).Error; err != nil {
-		return nil, utils.Pagination{}, err
-	}
-
-	pagination := utils.CalculatePagination(totalRows, page, limit)
-	return ledgers, pagination, nil
-}
-
-func GetPaymentLedgerByID(id uint) (*models.PaymentLedger, error) {
-	var ledger models.PaymentLedger
-	if err := config.DB.First(&ledger, id).Error; err != nil {
-		return nil, errors.New("Ledger pembayaran tidak ditemukan")
-	}
-	return &ledger, nil
-}
-
-func DeletePaymentLedger(id uint) error {
-	var ledger models.PaymentLedger
-	if err := config.DB.First(&ledger, id).Error; err != nil {
-		return errors.New("Jurnal mutasi kas tidak ditemukan")
-	}
-	return config.DB.Delete(&ledger).Error
 }
