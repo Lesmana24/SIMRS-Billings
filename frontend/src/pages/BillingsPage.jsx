@@ -6,6 +6,8 @@ import { Badge } from '../components/ui/Badge';
 import { Toast } from '../components/ui/Toast';
 import { ReceiptModal } from '../components/ui/ReceiptModal';
 import { TwoFactorModal } from '../components/ui/TwoFactorModal';
+import { CreateBillingModal } from '../components/billings/CreateBillingModal';
+import { PayBillingModal } from '../components/billings/PayBillingModal';
 import { Search, Plus, Printer, CheckCircle, Filter, Trash2 } from 'lucide-react';
 
 export const BillingsPage = () => {
@@ -25,22 +27,8 @@ export const BillingsPage = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState(null); // Receipt Modal
   const [deleteBilling, setDeleteBilling] = useState(null); // Delete Modal
+  const [payModalBilling, setPayModalBilling] = useState(null); // Pay Modal
   const [twoFactorBilling, setTwoFactorBilling] = useState(null); // 2FA Verification
-
-  // Create Form State
-  const [selectedPatientUserId, setSelectedPatientUserId] = useState('');
-  const [patientName, setPatientName] = useState('');
-  const [insuranceType, setInsuranceType] = useState('BPJS Kesehatan');
-  const [customInsuranceName, setCustomInsuranceName] = useState('');
-  const [insuranceClaimAmount, setInsuranceClaimAmount] = useState(0);
-  const [selectedTarifIds, setSelectedTarifIds] = useState([]);
-  const [tarifQuantities, setTarifQuantities] = useState({});
-
-  // Payment Breakdown State (For Pay Modal)
-  const [payModalBilling, setPayModalBilling] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [cashAmount, setCashAmount] = useState(0);
-  const [transferAmount, setTransferAmount] = useState(0);
 
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
@@ -84,131 +72,21 @@ export const BillingsPage = () => {
     fetchTarifsAndPatients();
   }, [fetchBillings]);
 
-  // Derived calculation for Create Modal - support quantity per item
-  const selectedTarifsList = tarifs.filter((t) => selectedTarifIds.includes(t.ID || t.id));
-  const calculatedTotalAmount = selectedTarifsList.reduce((sum, t) => {
-    const price = typeof t.amount === 'number' ? t.amount : (t.amount ? parseFloat(t.amount) : (t.harga || 0));
-    const qty = tarifQuantities[t.ID || t.id] || 1;
-    return sum + (price * qty);
-  }, 0);
-
-  const isNoInsurance = insuranceType === 'Tanpa Asuransi (Mandiri)';
-  const effectiveClaimAmount = isNoInsurance ? 0 : Number(insuranceClaimAmount || 0);
-  const calculatedPatientAmount = Math.max(0, calculatedTotalAmount - effectiveClaimAmount);
-
-  const handleInsuranceTypeChange = (e) => {
-    const val = e.target.value;
-    setInsuranceType(val);
-    if (val === 'Tanpa Asuransi (Mandiri)') {
-      setInsuranceClaimAmount(0);
-    }
-  };
-
-  const handleTarifToggle = (id) => {
-    if (selectedTarifIds.includes(id)) {
-      setSelectedTarifIds(selectedTarifIds.filter((tId) => tId !== id));
-      const nextQty = { ...tarifQuantities };
-      delete nextQty[id];
-      setTarifQuantities(nextQty);
-    } else {
-      setSelectedTarifIds([...selectedTarifIds, id]);
-      setTarifQuantities({ ...tarifQuantities, [id]: 1 });
-    }
-  };
-
-  const handleQuantityChange = (id, delta, e) => {
-    if (e) e.stopPropagation();
-    const current = tarifQuantities[id] || 1;
-    const nextVal = Math.max(1, current + delta);
-    setTarifQuantities({ ...tarifQuantities, [id]: nextVal });
-  };
-
-  const resetCreateForm = () => {
-    setSelectedPatientUserId('');
-    setPatientName('');
-    setInsuranceType('BPJS Kesehatan');
-    setCustomInsuranceName('');
-    setInsuranceClaimAmount(0);
-    setSelectedTarifIds([]);
-    setTarifQuantities({});
-  };
-
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
-    if (!patientName.trim() || selectedTarifIds.length === 0) {
-      setToast({ message: 'Harap isi nama pasien dan pilih minimal 1 tindakan medis', type: 'error' });
-      return;
-    }
-
-    const itemsPayload = selectedTarifIds.map((tId) => {
-      const found = tarifs.find((t) => (t.ID || t.id) === tId);
-      const price = typeof found?.amount === 'number' ? found.amount : (found?.amount ? parseFloat(found.amount) : (found?.harga || 0));
-      return {
-        action_id: Number(tId),
-        tarif_id: Number(tId),
-        item_name: found?.action_name || found?.nama || 'Tindakan Medis',
-        quantity: Number(tarifQuantities[tId] || 1),
-        unit_price: price,
-      };
-    });
-
-    const finalInsuranceProvider = insuranceType === 'Lainnya' ? (customInsuranceName || 'Asuransi Swasta') : insuranceType;
-
+  const handleCreateSubmit = async (payload, resetForm) => {
     try {
-      await billingApi.create({
-        user_id: selectedPatientUserId ? Number(selectedPatientUserId) : 0,
-        patient_user_id: selectedPatientUserId ? Number(selectedPatientUserId) : 0,
-        patient_name: patientName,
-        insurance_type: finalInsuranceProvider,
-        insurance_provider: finalInsuranceProvider,
-        insurance_claim: effectiveClaimAmount,
-        insurance_claim_amount: effectiveClaimAmount,
-        bpjs_claim: effectiveClaimAmount,
-        action_ids: selectedTarifIds.map(Number),
-        items: itemsPayload,
-      });
+      await billingApi.create(payload);
 
       setToast({ message: 'Billing tagihan pasien berhasil diterbitkan!', type: 'success' });
       setIsCreateOpen(false);
-      resetCreateForm();
+      resetForm();
       fetchBillings();
     } catch (err) {
       setToast({ message: err.message || 'Gagal menerbitkan tagihan', type: 'error' });
     }
   };
 
-  const openPayModal = (b) => {
-    setPayModalBilling(b);
-    setPaymentMethod('CASH');
-    setCashAmount(b.patient_amount || 0);
-    setTransferAmount(0);
-  };
-
-  const handleCashChange = (val) => {
-    const cash = Number(val || 0);
-    setCashAmount(cash);
-    if (paymentMethod === 'SPLIT' && payModalBilling) {
-      const remaining = Math.max(0, (payModalBilling.patient_amount || 0) - cash);
-      setTransferAmount(remaining);
-    }
-  };
-
-  const isSplitValid = paymentMethod !== 'SPLIT' || (cashAmount + transferAmount) === (payModalBilling?.patient_amount || 0);
-
-  const handleConfirmPayModal = (e) => {
-    e.preventDefault();
-    if (!payModalBilling) return;
-    if (!isSplitValid) {
-      setToast({ message: 'Kombinasi Nominal Split Payment harus tepat sama dengan Total Pelunasan Netto', type: 'error' });
-      return;
-    }
-    // Open 2FA PIN Modal
-    setTwoFactorBilling({
-      billing: payModalBilling,
-      paymentMethod,
-      cashAmount,
-      transferAmount,
-    });
+  const handleConfirmPayModal = (payData) => {
+    setTwoFactorBilling(payData);
     setPayModalBilling(null);
   };
 
@@ -254,7 +132,7 @@ export const BillingsPage = () => {
           <p className="text-xs text-[var(--text-secondary)]">Pengelolaan tagihan tindakan medis, verifikasi klaim penjamin, dan otorisasi kasir.</p>
         </div>
         <button
-          onClick={() => { resetCreateForm(); setIsCreateOpen(true); }}
+          onClick={() => setIsCreateOpen(true)}
           className="btn btn-emerald flex items-center gap-1.5 cursor-pointer shadow-md"
         >
           <Plus size={16} /> Terbitkan Tagihan Baru
@@ -354,7 +232,7 @@ export const BillingsPage = () => {
                           </button>
                           {!isPaid && (
                             <button
-                              onClick={() => openPayModal(b)}
+                              onClick={() => setPayModalBilling(b)}
                               className="btn btn-emerald btn-sm flex items-center gap-1 cursor-pointer"
                             >
                               <CheckCircle size={14} /> Otorisasi Bayar
@@ -386,285 +264,21 @@ export const BillingsPage = () => {
       </div>
 
       {/* Modal Terbitkan Tagihan Baru */}
-      <Modal
+      <CreateBillingModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Terbitkan Tagihan Medis SIMRS Baru"
-        maxWidth="max-w-xl"
-      >
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1">
-              Pilih Akun Pasien Terdaftar (Relasi Data)
-            </label>
-            <select
-              value={selectedPatientUserId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setSelectedPatientUserId(id);
-                const found = patients.find((p) => String(p.ID || p.id) === String(id));
-                if (found) {
-                  const selectedName = found.full_name && found.full_name.trim() ? found.full_name.trim() : found.username;
-                  setPatientName(selectedName);
-                }
-              }}
-              className="glass-input text-xs mb-2 text-[var(--text-primary)] bg-[var(--bg-input)]"
-            >
-              <option value="">-- (Opsional) Pilih Akun Pasien Terdaftar --</option>
-              {patients
-                .filter((p) => (p.role || '').toLowerCase() === 'pasien')
-                .map((p) => {
-                  const displayName = p.full_name && p.full_name.trim() ? p.full_name.trim() : p.username;
-                  return (
-                    <option key={p.ID || p.id} value={p.ID || p.id}>
-                      {displayName} (Pasien SIMRS • ID #{p.ID || p.id})
-                    </option>
-                  );
-                })}
-            </select>
-
-            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1">
-              Nama Pasien SIMRS
-            </label>
-            <input
-              type="text"
-              value={patientName}
-              onChange={(e) => setPatientName(e.target.value)}
-              placeholder="Contoh: Budi Santoso"
-              className="glass-input text-xs"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1">
-                Penyedia Penjamin / Asuransi
-              </label>
-              <select
-                value={insuranceType}
-                onChange={handleInsuranceTypeChange}
-                className="glass-input text-xs text-[var(--text-primary)] bg-[var(--bg-input)]"
-              >
-                <option value="BPJS Kesehatan">BPJS Kesehatan</option>
-                <option value="Prudential">Prudential</option>
-                <option value="Manulife">Manulife</option>
-                <option value="Allianz">Allianz</option>
-                <option value="FWD Insurance">FWD Insurance</option>
-                <option value="AXA Mandiri">AXA Mandiri</option>
-                <option value="Tanpa Asuransi (Mandiri)">Tanpa Asuransi (Mandiri)</option>
-                <option value="Lainnya">Lainnya...</option>
-              </select>
-            </div>
-
-            {!isNoInsurance && (
-              <div>
-                <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1">
-                  Nominal Subsidi / Klaim (IDR)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={insuranceClaimAmount}
-                  onChange={(e) => setInsuranceClaimAmount(Number(e.target.value))}
-                  placeholder="0"
-                  className="glass-input text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400"
-                />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1.5">
-              Pilih Items / Layanan Medis Ditindak
-            </label>
-            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-              {tarifs.map((t) => {
-                const targetId = t.ID || t.id;
-                const isSelected = selectedTarifIds.includes(targetId);
-                const code = t.kode || targetId;
-                const name = t.action_name || t.nama;
-                const unitPrice = typeof t.amount === 'number' ? t.amount : (t.amount ? parseFloat(t.amount) : (t.harga || 0));
-                const qty = tarifQuantities[targetId] || 1;
-                const itemSubtotal = unitPrice * qty;
-
-                return (
-                  <div
-                    key={targetId}
-                    onClick={() => handleTarifToggle(targetId)}
-                    className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
-                      isSelected
-                        ? 'bg-emerald-500/15 border-emerald-500/50 text-[var(--text-heading)] font-semibold'
-                        : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
-                    }`}
-                  >
-                    <div>
-                      <span className="font-semibold text-[var(--text-heading)]">{name}</span>
-                      <span className="text-[10px] text-[var(--text-secondary)] block font-mono">
-                        Ref Kode: #{code} • @ Rp {unitPrice.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {isSelected && (
-                        <div
-                          className="flex items-center gap-1.5 bg-[var(--bg-input)] border border-emerald-500/40 rounded-lg p-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => handleQuantityChange(targetId, -1, e)}
-                            className="w-5 h-5 rounded bg-[var(--bg-subtle)] hover:bg-emerald-500/30 text-[var(--text-heading)] font-bold flex items-center justify-center text-xs transition-colors cursor-pointer"
-                            title="Kurangi Qty"
-                          >
-                            -
-                          </button>
-                          <span className="w-8 text-center font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            {qty}x
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(e) => handleQuantityChange(targetId, 1, e)}
-                            className="w-5 h-5 rounded bg-[var(--bg-subtle)] hover:bg-emerald-500/30 text-[var(--text-heading)] font-bold flex items-center justify-center text-xs transition-colors cursor-pointer"
-                            title="Tambah Qty"
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
-                      <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                        Rp {itemSubtotal.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Breakdown Preview */}
-          <div className="p-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] space-y-1 text-xs">
-            <div className="flex justify-between text-[var(--text-secondary)]">
-              <span>Total Bruto Tindakan:</span>
-              <span className="font-mono text-[var(--text-primary)]">Rp {calculatedTotalAmount.toLocaleString('id-ID')}</span>
-            </div>
-            <div className="flex justify-between text-[var(--text-secondary)]">
-              <span>Klaim Penjamin ({insuranceType}):</span>
-              <span className="font-mono text-cyan-600 dark:text-cyan-400">- Rp {effectiveClaimAmount.toLocaleString('id-ID')}</span>
-            </div>
-            <div className="flex justify-between font-bold text-[var(--text-heading)] pt-1 border-t border-[var(--border-color)]">
-              <span>Beban Netto Pasien:</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400">Rp {calculatedPatientAmount.toLocaleString('id-ID')}</span>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
-            <button type="button" onClick={() => setIsCreateOpen(false)} className="btn btn-secondary btn-sm cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="btn btn-emerald btn-sm cursor-pointer">
-              Terbitkan Tagihan
-            </button>
-          </div>
-        </form>
-      </Modal>
+        patients={patients}
+        tarifs={tarifs}
+        onSubmit={handleCreateSubmit}
+      />
 
       {/* Modal Otorisasi Pembayaran (Kasir) */}
-      <Modal
+      <PayBillingModal
         isOpen={!!payModalBilling}
         onClose={() => setPayModalBilling(null)}
-        title={`Otorisasi Kasir Billing #${payModalBilling?.ID || payModalBilling?.id}`}
-      >
-        <form onSubmit={handleConfirmPayModal} className="space-y-4">
-          <div className="p-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] space-y-1 text-xs">
-            <div className="flex justify-between text-[var(--text-secondary)]">
-              <span>Pasien:</span>
-              <span className="font-semibold text-[var(--text-heading)]">{payModalBilling?.patient_name}</span>
-            </div>
-            <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-[var(--border-color)]">
-              <span>Total Pelunasan Netto:</span>
-              <span className="font-mono">Rp {(payModalBilling?.patient_amount || 0).toLocaleString('id-ID')}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1">
-              Metode Pembayaran (Kanal Kasir)
-            </label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => {
-                const method = e.target.value;
-                setPaymentMethod(method);
-                if (method === 'CASH') {
-                  setCashAmount(payModalBilling?.patient_amount || 0);
-                  setTransferAmount(0);
-                } else if (method === 'TRANSFER') {
-                  setCashAmount(0);
-                  setTransferAmount(payModalBilling?.patient_amount || 0);
-                } else if (method === 'SPLIT') {
-                  const half = Math.floor((payModalBilling?.patient_amount || 0) / 2);
-                  setCashAmount(half);
-                  setTransferAmount((payModalBilling?.patient_amount || 0) - half);
-                }
-              }}
-              className="glass-input text-xs text-[var(--text-primary)] bg-[var(--bg-input)]"
-            >
-              <option value="CASH">CASH (Tunai Kasir)</option>
-              <option value="TRANSFER">TRANSFER (Bank EDC / QRIS)</option>
-              <option value="SPLIT">SPLIT PAYMENT (Kombinasi Tunai & Transfer)</option>
-            </select>
-          </div>
-
-          {paymentMethod === 'SPLIT' ? (
-            <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <div>
-                <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Nominal Tunai (Cash)</label>
-                <input
-                  type="number"
-                  value={cashAmount}
-                  onChange={(e) => handleCashChange(e.target.value)}
-                  className="glass-input text-xs font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Nominal Transfer / EDC</label>
-                <input
-                  type="number"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(Number(e.target.value || 0))}
-                  className="glass-input text-xs font-mono"
-                />
-              </div>
-              <div className="col-span-2 text-[11px] text-[var(--text-secondary)] flex justify-between">
-                <span>Total Kombinasi:</span>
-                <span className={`font-mono font-semibold ${isSplitValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                  Rp {(cashAmount + transferAmount).toLocaleString('id-ID')} / Rp {(payModalBilling?.patient_amount || 0).toLocaleString('id-ID')}
-                </span>
-              </div>
-            </div>
-          ) : paymentMethod === 'TRANSFER' ? (
-            <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs space-y-1">
-              <span className="text-cyan-600 dark:text-cyan-300 font-semibold block">Transfer Bank & QRIS Kasir</span>
-              <p className="text-[11px] text-[var(--text-secondary)]">Nominal transfer penuh sejumlah Rp {(payModalBilling?.patient_amount || 0).toLocaleString('id-ID')}.</p>
-            </div>
-          ) : (
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
-              <span className="text-emerald-600 dark:text-emerald-300 font-semibold block">Pembayaran Tunai Kasir</span>
-              <p className="text-[11px] text-[var(--text-secondary)]">Uang fisik tunai diterima langsung di meja kasir sejumlah Rp {(payModalBilling?.patient_amount || 0).toLocaleString('id-ID')}.</p>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-color)]">
-            <button type="button" onClick={() => setPayModalBilling(null)} className="btn btn-secondary btn-sm cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" disabled={!isSplitValid} className="btn btn-emerald btn-sm cursor-pointer">
-              Lanjutkan Otorisasi 2FA
-            </button>
-          </div>
-        </form>
-      </Modal>
+        billing={payModalBilling}
+        onConfirm={handleConfirmPayModal}
+      />
 
       {/* Modal 2FA Verification */}
       {twoFactorBilling && (
