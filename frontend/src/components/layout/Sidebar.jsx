@@ -27,7 +27,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'analytics', label: 'Laporan & Analytics', icon: BarChart3 },
     { id: 'billings', label: 'Medical Billings', icon: Receipt },
-    { id: 'claims', label: 'Manajemen Klaim BPJS', icon: ShieldCheck },
+    { id: 'claims', label: 'Manajemen Klaim Penjamin', icon: ShieldCheck },
     { id: 'tarifs', label: 'Master Tarif Layanan', icon: Tag },
     { id: 'ledgers', label: 'Jurnal Mutasi Kas', icon: BookOpen },
     { id: 'audit-logs', label: 'Audit Trail System', icon: ShieldAlert },

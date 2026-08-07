@@ -26,11 +26,17 @@ type ClaimSummaryResponse struct {
 	CountPaid        int64           `json:"count_paid"`
 }
 
-func GetBPJSClaims(page, limit int, claimStatus, search string) ([]models.MedicalBilling, utils.Pagination, error) {
+func GetBPJSClaims(page, limit int, claimStatus, search, providerType string) ([]models.MedicalBilling, utils.Pagination, error) {
 	var billings []models.MedicalBilling
 	var totalRows int64
 
-	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > ?", 0)
+	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > 0 OR insurance_claim > 0")
+
+	if providerType == "bpjs" {
+		db = db.Where("LOWER(insurance_provider) LIKE ?", "%bpjs%")
+	} else if providerType == "swasta" {
+		db = db.Where("LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "%bpjs%", "%tanpa asuransi%")
+	}
 
 	if claimStatus != "" {
 		db = db.Where("bpjs_claim_status = ?", claimStatus)
@@ -59,8 +65,8 @@ func UpdateClaimStatus(id uint, newStatus string) (*models.MedicalBilling, error
 		return nil, errors.New("Tagihan medis tidak ditemukan")
 	}
 
-	if billing.BPJSAmount.LessThanOrEqual(decimal.Zero) {
-		return nil, errors.New("Tagihan ini tidak memiliki porsi klaim BPJS")
+	if billing.BPJSAmount.LessThanOrEqual(decimal.Zero) && billing.InsuranceClaim.LessThanOrEqual(decimal.Zero) {
+		return nil, errors.New("Tagihan ini tidak memiliki porsi klaim penjamin/asuransi")
 	}
 
 	billing.BPJSClaimStatus = newStatus
@@ -80,7 +86,7 @@ func UpdateClaimStatus(id uint, newStatus string) (*models.MedicalBilling, error
 	return &billing, nil
 }
 
-func GetClaimSummary() (ClaimSummaryResponse, error) {
+func GetClaimSummary(providerType string) (ClaimSummaryResponse, error) {
 	var summary ClaimSummaryResponse
 
 	// Initialize decimals
@@ -96,10 +102,16 @@ func GetClaimSummary() (ClaimSummaryResponse, error) {
 		Count           int64
 	}
 
+	db := config.DB.Model(&models.MedicalBilling{}).Where("bpjs_amount > 0 OR insurance_claim > 0")
+
+	if providerType == "bpjs" {
+		db = db.Where("LOWER(insurance_provider) LIKE ?", "%bpjs%")
+	} else if providerType == "swasta" {
+		db = db.Where("LOWER(insurance_provider) NOT LIKE ? AND LOWER(insurance_provider) NOT LIKE ?", "%bpjs%", "%tanpa asuransi%")
+	}
+
 	var results []Result
-	err := config.DB.Model(&models.MedicalBilling{}).
-		Select("COALESCE(bpjs_claim_status, 'UNCLAIMED') as bpjs_claim_status, SUM(bpjs_amount) as total, COUNT(*) as count").
-		Where("bpjs_amount > 0").
+	err := db.Select("COALESCE(bpjs_claim_status, 'UNCLAIMED') as bpjs_claim_status, SUM(COALESCE(NULLIF(insurance_claim, 0), bpjs_amount)) as total, COUNT(*) as count").
 		Group("bpjs_claim_status").
 		Scan(&results).Error
 

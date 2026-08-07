@@ -14,10 +14,9 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   DollarSign, 
-  TrendingUp, 
-  ArrowUpRight,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from 'lucide-react';
 
 export const ClaimsPage = () => {
@@ -29,6 +28,9 @@ export const ClaimsPage = () => {
   const [totalRows, setTotalRows] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  
+  // Provider Tab: 'bpjs', 'swasta', 'all'
+  const [activeProviderTab, setActiveProviderTab] = useState('bpjs');
 
   // Update Status Modal
   const [selectedClaim, setSelectedClaim] = useState(null);
@@ -40,19 +42,19 @@ export const ClaimsPage = () => {
 
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
-      const res = await claimsApi.getSummary();
+      const res = await claimsApi.getSummary({ provider_type: activeProviderTab });
       setSummary(res.data);
     } catch (err) {
-      console.error('Gagal memuat ringkasan klaim BPJS:', err);
+      console.error('Gagal memuat ringkasan klaim:', err);
     }
-  };
+  }, [activeProviderTab]);
 
   const fetchClaims = useCallback(async () => {
     try {
       setLoading(true);
-      const params = { page, limit: 10 };
+      const params = { page, limit: 10, provider_type: activeProviderTab };
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
 
@@ -63,16 +65,16 @@ export const ClaimsPage = () => {
         setTotalRows(res.meta.total_rows || 0);
       }
     } catch (err) {
-      setToast({ message: err.message || 'Gagal memuat data klaim BPJS', type: 'error' });
+      setToast({ message: err.message || 'Gagal memuat data klaim', type: 'error' });
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, activeProviderTab]);
 
   useEffect(() => {
     fetchClaims();
     fetchSummary();
-  }, [fetchClaims]);
+  }, [fetchClaims, fetchSummary]);
 
   const handleOpenUpdateModal = (claim) => {
     setSelectedClaim(claim);
@@ -126,15 +128,36 @@ export const ClaimsPage = () => {
     }
   };
 
+  const getProviderBadge = (providerName) => {
+    const name = providerName || 'BPJS Kesehatan';
+    const isBPJS = name.toLowerCase().includes('bpjs');
+    return (
+      <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md border flex items-center gap-1 w-fit ${
+        isBPJS 
+          ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30' 
+          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+      }`}>
+        {isBPJS ? <ShieldCheck size={11} /> : <Building2 size={11} />}
+        {name}
+      </span>
+    );
+  };
+
+  const getTabTitle = () => {
+    if (activeProviderTab === 'bpjs') return 'Klaim BPJS Kesehatan (V-Claim)';
+    if (activeProviderTab === 'swasta') return 'Klaim Asuransi Swasta';
+    return 'Semua Klaim Penjamin Medis';
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide flex items-center gap-2">
-            <ShieldCheck className="text-cyan-500" size={24} /> Pelacakan Klaim Asuransi & BPJS (V-Claim)
+            <ShieldCheck className="text-cyan-500" size={24} /> Pelacakan Klaim Penjamin (BPJS & Asuransi Swasta)
           </h2>
-          <p className="text-xs text-[var(--text-secondary)]">Manajemen dan verifikasi piutang subsidi klaim BPJS Kesehatan secara terpusat.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Manajemen dan verifikasi piutang subsidi klaim BPJS & Asuransi Swasta secara terpisah.</p>
         </div>
         <button
           onClick={() => { fetchClaims(); fetchSummary(); }}
@@ -144,12 +167,50 @@ export const ClaimsPage = () => {
         </button>
       </div>
 
+      {/* Provider Category Switcher Tabs */}
+      <div className="flex items-center gap-2 border-b border-[var(--border-color)] pb-3 overflow-x-auto">
+        <button
+          onClick={() => { setActiveProviderTab('bpjs'); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeProviderTab === 'bpjs'
+              ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20'
+              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+          }`}
+        >
+          <ShieldCheck size={16} /> Klaim BPJS Kesehatan
+        </button>
+
+        <button
+          onClick={() => { setActiveProviderTab('swasta'); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeProviderTab === 'swasta'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+          }`}
+        >
+          <Building2 size={16} /> Klaim Asuransi Swasta
+        </button>
+
+        <button
+          onClick={() => { setActiveProviderTab('all'); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeProviderTab === 'all'
+              ? 'bg-slate-700 text-white dark:bg-slate-800'
+              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+          }`}
+        >
+          <Filter size={15} /> Semua Penjamin
+        </button>
+      </div>
+
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Piutang BPJS */}
+        {/* Total Piutang / Subsidi */}
         <div className="glass-card p-4 space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[var(--text-secondary)]">Total Subsidi BPJS</span>
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">
+              {activeProviderTab === 'bpjs' ? 'Total Subsidi BPJS' : activeProviderTab === 'swasta' ? 'Total Klaim Swasta' : 'Total Subsidi Penjamin'}
+            </span>
             <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
               <DollarSign size={18} />
             </div>
@@ -158,7 +219,7 @@ export const ClaimsPage = () => {
             {formatIDR(summary?.total_bpjs_amount)}
           </p>
           <div className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1">
-            <span>Akumulasi porsi klaim asuransi</span>
+            <span>Kategori: <strong>{getTabTitle()}</strong></span>
           </div>
         </div>
 
@@ -191,7 +252,7 @@ export const ClaimsPage = () => {
             {formatIDR(Number(summary?.total_submitted || 0) + Number(summary?.total_verified || 0))}
           </p>
           <div className="text-[11px] text-[var(--text-secondary)] flex items-center justify-between">
-            <span>{(summary?.count_submitted || 0) + (summary?.count_verified || 0)} berkas di BPJS</span>
+            <span>{(summary?.count_submitted || 0) + (summary?.count_verified || 0)} berkas diproses</span>
             <span className="font-semibold text-cyan-500">Menunggu Cair</span>
           </div>
         </div>
@@ -209,7 +270,7 @@ export const ClaimsPage = () => {
           </p>
           <div className="text-[11px] text-[var(--text-secondary)] flex items-center justify-between">
             <span>{summary?.count_paid || 0} klaim disetujui</span>
-            <span className="font-semibold text-emerald-500">Lunas BPJS</span>
+            <span className="font-semibold text-emerald-500">Lunas Penjamin</span>
           </div>
         </div>
       </div>
@@ -235,7 +296,7 @@ export const ClaimsPage = () => {
           >
             <option value="">Semua Status Klaim</option>
             <option value="UNCLAIMED">Belum Diajukan (Draft)</option>
-            <option value="SUBMITTED">Sudah Diajukan ke BPJS</option>
+            <option value="SUBMITTED">Sudah Diajukan ke Penjamin</option>
             <option value="VERIFIED">Terverifikasi Layak</option>
             <option value="PAID">Klaim Cair / Paid</option>
             <option value="DISPUTED">Sengketa / Disputed</option>
@@ -252,21 +313,24 @@ export const ClaimsPage = () => {
                 <th>No. Billing</th>
                 <th>Tanggal Transaksi</th>
                 <th>Nama Pasien</th>
+                <th>Penyedia Penjamin</th>
                 <th>Total Billing</th>
-                <th>Porsi BPJS (Subsidi)</th>
+                <th>Porsi Subsidi</th>
                 <th>Beban Pasien</th>
-                <th>Status Klaim BPJS</th>
+                <th>Status Klaim</th>
                 <th className="text-right">Aksi Manajemen</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8">Memuat data piutang BPJS...</td>
+                  <td colSpan={9} className="text-center text-[var(--text-secondary)] py-8">Memuat data klaim penjamin...</td>
                 </tr>
               ) : claims.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-[var(--text-secondary)] py-8">Tidak ada berkas klaim BPJS yang sesuai filter.</td>
+                  <td colSpan={9} className="text-center text-[var(--text-secondary)] py-8">
+                    Tidak ada berkas klaim {activeProviderTab === 'bpjs' ? 'BPJS' : activeProviderTab === 'swasta' ? 'Asuransi Swasta' : ''} yang sesuai filter.
+                  </td>
                 </tr>
               ) : (
                 claims.map((c) => (
@@ -280,8 +344,11 @@ export const ClaimsPage = () => {
                       }) : '-'}
                     </td>
                     <td className="font-semibold text-[var(--text-heading)]">{c.patient_name}</td>
+                    <td>{getProviderBadge(c.insurance_provider || c.insurance_type)}</td>
                     <td className="number-font text-[var(--text-primary)]">{formatIDR(c.total_amount)}</td>
-                    <td className="number-font font-bold text-cyan-600 dark:text-cyan-400">{formatIDR(c.bpjs_amount)}</td>
+                    <td className="number-font font-bold text-cyan-600 dark:text-cyan-400">
+                      {formatIDR(c.insurance_claim || c.bpjs_amount)}
+                    </td>
                     <td className="number-font text-[var(--text-secondary)]">{formatIDR(c.patient_amount)}</td>
                     <td>{getClaimStatusBadge(c.bpjs_claim_status)}</td>
                     <td className="text-right">
@@ -320,26 +387,27 @@ export const ClaimsPage = () => {
       <Modal
         isOpen={!!selectedClaim}
         onClose={() => setSelectedClaim(null)}
-        title={`Update Status Klaim BPJS #BILL-${selectedClaim?.ID || selectedClaim?.id}`}
+        title={`Update Status Klaim #BILL-${selectedClaim?.ID || selectedClaim?.id}`}
         maxWidth="max-w-md"
       >
         <form onSubmit={handleUpdateStatus} className="space-y-4">
           <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs space-y-1">
             <span className="text-[var(--text-secondary)] block">Pasien: <strong className="text-[var(--text-heading)]">{selectedClaim?.patient_name}</strong></span>
-            <span className="text-[var(--text-secondary)] block">Nominal Subsidi BPJS: <strong className="text-cyan-600 dark:text-cyan-400 font-mono text-sm">{formatIDR(selectedClaim?.bpjs_amount)}</strong></span>
+            <span className="text-[var(--text-secondary)] block">Penjamin: <strong className="text-[var(--text-heading)]">{selectedClaim?.insurance_provider || selectedClaim?.insurance_type || 'BPJS Kesehatan'}</strong></span>
+            <span className="text-[var(--text-secondary)] block">Nominal Klaim Subsidi: <strong className="text-cyan-600 dark:text-cyan-400 font-mono text-sm">{formatIDR(selectedClaim?.insurance_claim || selectedClaim?.bpjs_amount)}</strong></span>
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)]">Pilih Status Klaim BPJS Baru</label>
+            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)]">Pilih Status Klaim Baru</label>
             <select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
               className="glass-input bg-[var(--bg-input)] text-[var(--text-heading)] font-semibold"
             >
               <option value="UNCLAIMED">UNCLAIMED — Belum Diajukan (Draft)</option>
-              <option value="SUBMITTED">SUBMITTED — Berkas Diajukan ke BPJS V-Claim</option>
-              <option value="VERIFIED">VERIFIED — Terverifikasi Layak oleh Verifikator BPJS</option>
-              <option value="PAID">PAID — Dana Subsidi BPJS Sudah Cair ke RS</option>
+              <option value="SUBMITTED">SUBMITTED — Berkas Diajukan ke Penjamin</option>
+              <option value="VERIFIED">VERIFIED — Terverifikasi Layak oleh Penjamin</option>
+              <option value="PAID">PAID — Dana Subsidi Penjamin Sudah Cair ke RS</option>
               <option value="DISPUTED">DISPUTED — Sengketa / Berkas Perlu Konfirmasi</option>
             </select>
           </div>

@@ -16,8 +16,9 @@ func GetBPJSClaims(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	status := c.Query("status")
 	search := c.Query("search")
+	providerType := c.Query("provider_type")
 
-	billings, meta, err := services.GetBPJSClaims(page, limit, status, search)
+	billings, meta, err := services.GetBPJSClaims(page, limit, status, search, providerType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -84,7 +85,8 @@ func UpdateClaimStatus(c *gin.Context) {
 }
 
 func GetClaimSummary(c *gin.Context) {
-	summary, err := services.GetClaimSummary()
+	providerType := c.Query("provider_type")
+	summary, err := services.GetClaimSummary(providerType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

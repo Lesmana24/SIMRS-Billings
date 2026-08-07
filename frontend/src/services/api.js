@@ -288,7 +288,10 @@ export const claimsApi = {
     const query = new URLSearchParams(params).toString();
     return request(`/claims${query ? `?${query}` : ''}`);
   },
-  getSummary: () => request('/claims/summary'),
+  getSummary: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/claims/summary${query ? `?${query}` : ''}`);
+  },
   updateStatus: (id, status) => request(`/claims/${id}/status`, {
     method: 'PUT',
     body: { status },
