@@ -25,8 +25,11 @@ Backend REST API untuk Sistem Informasi Manajemen Rumah Sakit (SIMRS) - Modul Bi
 1. **Role-Based Access Control (RBAC)**: Autentikasi JWT dengan hak akses terpisah untuk `admin`, `staff`, dan `pasien`.
 2. **Kalkulasi Presisi Tinggi (Decimal Math)**: Menghindari *floating-point rounding error* pada perhitungan uang dengan pustaka `shopspring/decimal`.
 3. **Pembayaran Idempoten (*Idempotent Payment*)**: Perlindungan transaksi ganda menggunakan header `X-Idempotency-Key` dan tabel audit `idempotency_logs`.
-4. **Buku Kas / Ledger Pembayaran (*Payment Ledger*)**: Pencatatan mutasi kas masuk secara permanen (*immutable*) untuk kebutuhan audit keuangan.
-5. **Pagination & Live Search**: Semua endpoint `GET` mendukung *query parameter* `page`, `limit`, `search`, dan *filter status/role*.
+4. **Manajemen Klaim Penjamin Terpisah**: Pelacakan dan verifikasi piutang klaim terpisah antara **BPJS Kesehatan (V-Claim)** dan **Asuransi Swasta** (AXA Mandiri, Prudential, Allianz, Manulife, FWD, dll.) menggunakan filter `provider_type`.
+5. **Prioritas Auto-Fill Identitas Pasien**: Pemilihan pasien terdaftar mengutamakan **Nama Lengkap (`full_name`)** sebelum jatuh kembali (*fallback*) ke **Username**.
+6. **Flexibility Payload Item Billing**: Mendukung pembuatan tagihan dengan referensi `action_id`, `tarif_id`, maupun array `action_ids` secara bersamaan.
+7. **Buku Kas / Ledger Pembayaran (*Payment Ledger*)**: Pencatatan mutasi kas masuk secara permanen (*immutable*) untuk kebutuhan audit keuangan.
+8. **Pagination & Live Search**: Semua endpoint `GET` mendukung *query parameter* `page`, `limit`, `search`, dan *filter status/role/provider*.
 
 ---
 
@@ -55,6 +58,7 @@ server/
 ├── handlers/
 │   ├── auth_handler.go      # Controller Register & Login
 │   ├── billing_handler.go   # Controller Billing & Payment
+│   ├── claim_handler.go     # Controller Klaim BPJS & Asuransi Swasta
 │   ├── ledger_handler.go    # Controller Laporan Ledger Kas
 │   ├── tarif_handler.go     # Controller Master Data Tarif
 │   └── user_handler.go      # Controller Manajemen User
@@ -73,6 +77,7 @@ server/
 │   └── seeder.go            # Data Awal Master User & Tarif Layanan
 ├── services/
 │   ├── billing_service.go   # Business Logic Billing, Ledger, & Payment
+│   ├── claim_service.go     # Business Logic Klaim BPJS & Asuransi Swasta
 │   ├── tarif_service.go     # Business Logic Tarif
 │   └── user_service.go      # Business Logic User
 ├── utils/
@@ -101,6 +106,7 @@ erDiagram
     USERS {
         uint id PK
         string username
+        string full_name
         string password
         string role "admin | staff | pasien"
         time created_at
@@ -119,8 +125,11 @@ erDiagram
         string patient_name
         decimal total_amount
         decimal bpjs_amount
+        string insurance_provider
+        decimal insurance_claim
         decimal patient_amount
         string status "Pending | PAID"
+        string bpjs_claim_status "UNCLAIMED | SUBMITTED | VERIFIED | PAID | DISPUTED"
         time created_at
     }
 
@@ -282,53 +291,84 @@ Base URL: `http://localhost:8080/api/v1`
 | `POST` | `/billings` | — | Buat tagihan baru pasien |
 | `GET` | `/billings` | `page=1&limit=10&search=pasien1&status=Pending` | Get list seluruh tagihan |
 | `GET` | `/billings/:id` | `id` (uint) | Get detail tagihan beserta rincian tindakan |
-| `PUT` | `/billings/:id` | `id` (uint) | Update tagihan (nama/status/klaim BPJS) |
+| `PUT` | `/billings/:id` | `id` (uint) | Update tagihan (nama/status/klaim penjamin) |
 | `DELETE` | `/billings/:id` | `id` (uint) | Hapus tagihan |
 | `POST` | `/billings/:id/pay` | `id` (uint) | Proses pembayaran tagihan |
 
 ##### Contoh Request Body `POST /billings`:
 ```json
 {
-  "patient_user_id": 3,
-  "bpjs_claim": 50000,
-  "action_ids": [1, 3]
+  "patient_user_id": 6,
+  "patient_name": "Lesmana Adhi Kusuma",
+  "insurance_provider": "AXA Mandiri",
+  "insurance_claim": 1200000,
+  "items": [
+    {
+      "action_id": 3,
+      "tarif_id": 3,
+      "quantity": 1
+    }
+  ]
 }
 ```
 
 ##### Contoh Request `POST /billings/:id/pay` (Proses Pembayaran):
 * **URL**: `POST /api/v1/billings/1/pay`
 * **Header Tambahan (Wajib)**: `X-Idempotency-Key: PAY-BILLING-001`
-* **Body**: `none` (Kosong)
+* **Body**:
+  ```json
+  {
+    "payment_method": "CASH",
+    "cash_amount": 220000,
+    "transfer_amount": 0
+  }
+  ```
 * **Response (200 OK)**:
   ```json
   {
-    "message": "Pembayaran Berhasil Diproses",
+    "message": "Otorisasi pembayaran berhasil diproses",
     "data": {
       "ID": 1,
-      "patient_user_id": 3,
-      "patient_name": "pasien1",
-      "total_amount": "270000",
-      "bpjs_amount": "50000",
-      "patient_amount": "220000",
-      "status": "PAID",
-      "item": [ ... ]
+      "patient_user_id": 6,
+      "patient_name": "Lesmana Adhi Kusuma",
+      "total_amount": "1120000",
+      "insurance_provider": "AXA Mandiri",
+      "insurance_claim": "1200000",
+      "patient_amount": "0",
+      "status": "PAID"
     }
   }
   ```
 
 ---
 
-#### C. Manajemen Pengguna (*User Management*)
+#### C. Manajemen Klaim Penjamin (*BPJS & Asuransi Swasta*)
+| Method | Endpoint | Query Param / Path | Deskripsi |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/claims` | `page=1&limit=10&status=UNCLAIMED&provider_type=bpjs` | List klaim penjamin (Filter: `provider_type` = `bpjs` / `swasta` / `all`) |
+| `GET` | `/claims/summary` | `provider_type=bpjs` | Ringkasan KPI klaim (Unclaimed, Submitted, Verified, Paid) berdasarkan provider |
+| `PUT` | `/claims/:id/status` | `id` (uint) | Update status klaim (`UNCLAIMED`, `SUBMITTED`, `VERIFIED`, `PAID`, `DISPUTED`) |
+
+##### Contoh Request Body `PUT /claims/:id/status`:
+```json
+{
+  "status": "SUBMITTED"
+}
+```
+
+---
+
+#### D. Manajemen Pengguna (*User Management*)
 | Method | Endpoint | Query Param / Path | Deskripsi |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/users` | `page=1&limit=10&search=pasien&role=pasien` | List seluruh pengguna |
 | `GET` | `/users/:id` | `id` (uint) | Detail pengguna by ID |
-| `PUT` | `/users/:id` | `id` (uint) | Update data user (username, role, password) |
+| `PUT` | `/users/:id` | `id` (uint) | Update data user (username, full_name, role, password) |
 | `DELETE` | `/users/:id` | `id` (uint) | Hapus pengguna |
 
 ---
 
-#### D. Jurnal Kas & Mutasi Pembayaran (*Payment Ledgers*)
+#### E. Jurnal Kas & Mutasi Pembayaran (*Payment Ledgers*)
 | Method | Endpoint | Query Param / Path | Deskripsi |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/ledgers` | `page=1&limit=10&search=Pembayaran` | List jurnal kas masuk |
@@ -350,13 +390,14 @@ Base URL: `http://localhost:8080/api/v1`
   "data": [
     {
       "ID": 1,
-      "patient_user_id": 3,
-      "patient_name": "pasien1",
+      "patient_user_id": 6,
+      "patient_name": "Lesmana Adhi Kusuma",
       "total_amount": "270000",
-      "bpjs_amount": "50000",
+      "insurance_provider": "BPJS Kesehatan",
+      "insurance_claim": "50000",
       "patient_amount": "220000",
       "status": "PAID",
-      "created_at": "2026-08-04T14:46:00Z",
+      "created_at": "2026-08-07T10:00:00Z",
       "item": [
         {
           "ID": 1,
