@@ -400,7 +400,8 @@ export const BillingsPage = () => {
                 setSelectedPatientUserId(id);
                 const found = patients.find((p) => String(p.ID || p.id) === String(id));
                 if (found) {
-                  setPatientName(found.username);
+                  const selectedName = found.full_name && found.full_name.trim() ? found.full_name.trim() : found.username;
+                  setPatientName(selectedName);
                 }
               }}
               className="glass-input text-xs mb-2 text-[var(--text-primary)] bg-[var(--bg-input)]"
@@ -408,11 +409,14 @@ export const BillingsPage = () => {
               <option value="">-- (Opsional) Pilih Akun Pasien Terdaftar --</option>
               {patients
                 .filter((p) => (p.role || '').toLowerCase() === 'pasien')
-                .map((p) => (
-                  <option key={p.ID || p.id} value={p.ID || p.id}>
-                    {p.username} (Pasien SIMRS • ID #{p.ID || p.id})
-                  </option>
-                ))}
+                .map((p) => {
+                  const displayName = p.full_name && p.full_name.trim() ? p.full_name.trim() : p.username;
+                  return (
+                    <option key={p.ID || p.id} value={p.ID || p.id}>
+                      {displayName} (Pasien SIMRS • ID #{p.ID || p.id})
+                    </option>
+                  );
+                })}
             </select>
 
             <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1">
