@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Badge } from '../ui/Badge';
-import { LogOut, Menu, Hospital, Sun, Moon } from 'lucide-react';
+import { LogOut, Menu, Hospital, Sun, Moon, Clock } from 'lucide-react';
 
 export const Navbar = ({ onToggleSidebar, onOpenProfile }) => {
   const { username, role, logout } = useAuth();
   const { theme, hasCustomPreference, toggleTheme } = useTheme();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-[var(--bg-header)] border-b border-[var(--border-color)] px-4 h-[57px] flex items-center shrink-0 transition-colors duration-200">
@@ -32,6 +41,17 @@ export const Navbar = ({ onToggleSidebar, onOpenProfile }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Realtime Clock */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-mono bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)]">
+            <Clock size={14} className="text-emerald-400" />
+            <span className="font-semibold tabular-nums tracking-wide text-[11px]">
+              {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </span>
+            <span className="text-[var(--text-secondary)] text-[10px] border-l border-[var(--border-color)] pl-1.5 ml-0.5 hidden lg:inline">
+              {currentTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
