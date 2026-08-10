@@ -6,14 +6,11 @@ export const RevenueTrendChart = ({ trends = [], maxTrendVal = 1, bpjs = {}, mon
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Chart 1: Daily Revenue Trend Bar Chart (2 cols) */}
       <div className="lg:col-span-2 glass-panel p-5 space-y-4 relative z-20">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-[var(--text-heading)] flex items-center gap-2">
-              <Activity size={18} className="text-emerald-500" /> Grafik Tren Pendapatan Harian (7 Hari Terakhir)
-            </h3>
-            <p className="text-xs text-[var(--text-secondary)]">Visualisasi penerimaan kas bersih pasien vs klaim BPJS Kesehatan vs Asuransi Swasta</p>
-          </div>
-          <span className="badge badge-paid">Real-Time Data</span>
+        <div>
+          <h3 className="text-base font-bold text-[var(--text-heading)] flex items-center gap-2">
+            <Activity size={18} className="text-emerald-500" /> Grafik Tren Pendapatan Harian (7 Hari Terakhir)
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)]">Visualisasi penerimaan kas bersih pasien vs klaim BPJS Kesehatan vs Asuransi Swasta</p>
         </div>
 
         {/* SVG/Bar Visualization */}

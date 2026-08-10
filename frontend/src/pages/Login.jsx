@@ -28,7 +28,7 @@ export const Login = ({ onSwitchToRegister }) => {
 
   return (
     <AuthLayout 
-      title="SIMRS Billing Engine"
+      title="SIMRS Billing"
       subtitle="Masuk ke Sistem Informasi Billing & Pembayaran Pasien"
     >
       <form onSubmit={handleSubmit} className="space-y-4">

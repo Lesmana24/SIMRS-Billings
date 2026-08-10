@@ -53,12 +53,12 @@ export const AuditLogPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-[var(--text-heading)] tracking-wide">
-            System Activity Audit Trail Log
+            Audit Trail Aktivitas Sistem
           </h2>
           <p className="text-xs text-[var(--text-secondary)]">Pencatatan rekam jejak aktivitas staf kasir, perubahan tarif, dan otorisasi transaksi SIMRS.</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold">
-          <ShieldCheck size={15} /> Real-Time Security Monitoring
+          <ShieldCheck size={15} /> Monitoring Aktivitas
         </div>
       </div>
 

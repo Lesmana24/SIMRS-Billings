@@ -41,13 +41,9 @@ export const Dashboard = ({ onNavigate }) => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Editorial Header Banner */}
+      {/* Header Banner */}
       <div className="border-b border-[var(--border-color)] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="badge badge-paid">Live System Ledger</span>
-            <span className="text-xs font-mono text-[var(--text-muted)]">• Idempotent Billing Engine v1.0</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold text-[var(--text-heading)] tracking-tight">
             Dashboard Overview Keuangan
           </h1>
@@ -64,38 +60,32 @@ export const Dashboard = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* Asymmetrical Bento Grid: 1 Large Spotlight Card + 3 Side Metric Cards */}
+      {/* Bento Grid: Spotlight Card + Side Metric Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Main Revenue Spotlight (Spans 2 cols) */}
+        {/* Main Revenue Spotlight */}
         <div className="lg:col-span-2 glass-panel p-6 flex flex-col justify-between space-y-6 border-l-4 border-l-emerald-500 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Penerimaan Kas Lunas Hari Ini
               </span>
-              <h3 className="text-3xl sm:text-4xl font-black font-mono text-[var(--text-heading)] tracking-tight mt-1">
+              <h3 className="text-3xl sm:text-4xl font-bold font-mono text-[var(--text-heading)] tracking-tight mt-1">
                 Rp {dailyRev.toLocaleString('id-ID')}
               </h3>
             </div>
-            <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <Activity size={24} />
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg">
+              <DollarSign size={24} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-[var(--border-color)]">
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-color)]">
             <div>
-              <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Tagihan Lunas</span>
-              <strong className="text-lg font-bold font-mono text-[var(--text-heading)]">{summary?.total_paid_count || 0} Trx</strong>
+              <span className="text-xs text-[var(--text-muted)] block font-medium">Tagihan Lunas</span>
+              <strong className="text-lg font-bold text-[var(--text-heading)]">{summary?.total_paid_count || 0} Transaksi</strong>
             </div>
             <div>
-              <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Total Kas (All Time)</span>
-              <strong className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">Rp {totalRev.toLocaleString('id-ID')}</strong>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-mono uppercase text-[var(--text-muted)] block">Status Engine</span>
-              <span className="text-xs font-bold font-mono text-emerald-500 flex items-center gap-1 mt-0.5">
-                ● Active Operational
-              </span>
+              <span className="text-xs text-[var(--text-muted)] block font-medium">Total Penerimaan Kas</span>
+              <strong className="text-lg font-bold text-emerald-600 dark:text-emerald-400">Rp {totalRev.toLocaleString('id-ID')}</strong>
             </div>
           </div>
         </div>
@@ -119,9 +109,9 @@ export const Dashboard = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Quick Action Navigation - Asymmetrical Tiles */}
+      {/* Quick Action Navigation */}
       <div className="space-y-3">
-        <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--text-muted)]">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
           Pintasan Navigasi & Aksi Modul
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -130,7 +120,6 @@ export const Dashboard = ({ onNavigate }) => {
             className="p-5 glass-card hover:border-emerald-500/50 text-left transition-all group flex items-start justify-between cursor-pointer"
           >
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase">Analytics</span>
               <p className="text-sm font-bold text-[var(--text-heading)] group-hover:text-emerald-500 transition-colors">Laporan Keuangan & Grafik</p>
               <p className="text-xs text-[var(--text-secondary)]">Grafik tren pendapatan harian & rasio klaim penjamin.</p>
             </div>
@@ -142,7 +131,6 @@ export const Dashboard = ({ onNavigate }) => {
             className="p-5 glass-card hover:border-emerald-500/50 text-left transition-all group flex items-start justify-between cursor-pointer"
           >
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase">Master Data</span>
               <p className="text-sm font-bold text-[var(--text-heading)] group-hover:text-emerald-500 transition-colors">Master Tarif Layanan</p>
               <p className="text-xs text-[var(--text-secondary)]">Daftar harga tindakan medis, obat, dan perawatan RS.</p>
             </div>
@@ -154,9 +142,8 @@ export const Dashboard = ({ onNavigate }) => {
             className="p-5 glass-card hover:border-emerald-500/50 text-left transition-all group flex items-start justify-between cursor-pointer"
           >
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold uppercase">Mutasi Kas</span>
               <p className="text-sm font-bold text-[var(--text-heading)] group-hover:text-emerald-500 transition-colors">Jurnal Mutasi Kas</p>
-              <p className="text-xs text-[var(--text-secondary)]">Audit trail mutasi pembayaran idempoten kasir.</p>
+              <p className="text-xs text-[var(--text-secondary)]">Audit trail mutasi pembayaran kasir.</p>
             </div>
             <ArrowUpRight size={18} className="text-[var(--text-muted)] group-hover:text-emerald-500 shrink-0" />
           </button>
@@ -167,7 +154,7 @@ export const Dashboard = ({ onNavigate }) => {
       <div className="glass-panel p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
           <div>
-            <h3 className="text-sm font-bold text-[var(--text-heading)] uppercase tracking-wider font-mono">
+            <h3 className="text-sm font-bold text-[var(--text-heading)]">
               Transaksi Tagihan Medis Terakhir
             </h3>
             <p className="text-xs text-[var(--text-secondary)]">5 catatan transaksi billing terbaru di SIMRS</p>

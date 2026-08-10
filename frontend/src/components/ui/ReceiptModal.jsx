@@ -195,7 +195,7 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
           </div>
 
           <div class="footer-note">
-            Bukti pembayaran ini diproses secara otomatis oleh Sistem Informasi Manajemen Rumah Sakit (SIMRS) Billing Engine dan merupakan dokumen sah.
+            Bukti pembayaran ini diproses secara otomatis oleh Sistem Informasi Manajemen Rumah Sakit (SIMRS) Billing dan merupakan dokumen sah.
           </div>
         </body>
       </html>
@@ -385,7 +385,7 @@ export const ReceiptModal = ({ isOpen, onClose, billing }) => {
         {/* Footer Catatan Hak Cipta & Tombol Cetak */}
         <div className="pt-1">
           <p className="text-[9px] text-[var(--text-muted)] text-center italic">
-            Bukti pembayaran ini diproses secara otomatis oleh Sistem Informasi Manajemen Rumah Sakit (SIMRS) Billing Engine dan merupakan dokumen sah.
+            Bukti pembayaran ini diproses secara otomatis oleh Sistem Informasi Manajemen Rumah Sakit (SIMRS) Billing dan merupakan dokumen sah.
           </p>
 
           <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)]">

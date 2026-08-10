@@ -30,11 +30,11 @@ export const Navbar = ({ onToggleSidebar, onOpenProfile }) => {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-sm">
+            <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-md">
               <Hospital size={18} />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-[var(--text-heading)] tracking-wide leading-tight uppercase font-mono">SIMRS Billing Engine</h1>
+              <h1 className="text-sm font-bold text-[var(--text-heading)] tracking-wide leading-tight uppercase font-sans">SIMRS Billing</h1>
               <p className="text-[10px] text-[var(--text-secondary)] hidden sm:block">Sistem Informasi Keuangan & Kasir Medis</p>
             </div>
           </div>

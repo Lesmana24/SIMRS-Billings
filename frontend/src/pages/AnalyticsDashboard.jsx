@@ -112,8 +112,7 @@ export const AnalyticsDashboard = () => {
       <div className="border-b border-[var(--border-color)] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="badge badge-paid font-mono">Financial Ledger System</span>
-            <span className="text-xs font-mono text-[var(--text-muted)]">• Periode: {monthNames[selectedMonth - 1]} {selectedYear}</span>
+            <span className="text-xs text-[var(--text-secondary)]">Periode: {monthNames[selectedMonth - 1]} {selectedYear}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold text-[var(--text-heading)] tracking-tight">
             Analytics & Laporan Keuangan SIMRS

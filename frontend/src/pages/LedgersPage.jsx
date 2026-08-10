@@ -63,7 +63,7 @@ export const LedgersPage = () => {
           <p className="text-xs text-[var(--text-secondary)]">Buku kas permanen pencatatan mutasi penerimaan pembayaran tagihan medis.</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-          <ShieldCheck size={15} /> Audit Trail Idempotency Active
+          <ShieldCheck size={15} /> Audit Trail Aktif
         </div>
       </div>
 

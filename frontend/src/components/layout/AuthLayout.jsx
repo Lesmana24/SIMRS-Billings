@@ -65,7 +65,7 @@ export const AuthLayout = ({ children, title, subtitle }) => {
         </svg>
       </div>
 
-      {/* 4. Main Auth Card Container with Framer-Motion Spring Entrance */}
+      {/* Main Auth Card Container */}
       <motion.div 
         initial={{ opacity: 0, y: 24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -75,7 +75,7 @@ export const AuthLayout = ({ children, title, subtitle }) => {
         {/* Header Branding */}
         <div className="text-center space-y-3">
           <motion.div 
-            whileHover={{ scale: 1.08, rotate: 3 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
             className="relative inline-flex items-center justify-center p-3.5 bg-gradient-to-b from-emerald-950/90 to-slate-950 text-emerald-400 rounded-2xl border border-emerald-500/30 shadow-xl shadow-emerald-950/80 group cursor-pointer"
@@ -85,19 +85,8 @@ export const AuthLayout = ({ children, title, subtitle }) => {
           </motion.div>
 
           <div>
-            <motion.div 
-              whileHover={{ scale: 1.03 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/50 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium mb-2.5 shadow-sm hover:border-emerald-500/40 transition-colors duration-200"
-            >
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-              </span>
-              <span>SIMRS Billing System</span>
-            </motion.div>
-
-            <h1 className="text-2xl font-black text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-200 bg-clip-text text-transparent">
-              {title || 'SIMRS Billing Engine'}
+            <h1 className="text-2xl font-black text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-200 bg-clip-text text-transparent mt-2">
+              {title || 'SIMRS Billing'}
             </h1>
             <p className="text-xs md:text-sm text-slate-400 mt-1">
               {subtitle || 'Sistem Informasi Management Billing & Pembayaran Rumah Sakit'}

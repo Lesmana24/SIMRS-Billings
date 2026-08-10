@@ -37,7 +37,7 @@ export const AmbientBackground = () => {
         className="absolute -bottom-44 -left-44 w-[650px] h-[650px] rounded-full bg-cyan-500/20 blur-[110px] dark:bg-teal-500/15"
       />
 
-      {/* 3. Architectural Ledger Micro-Dot Pattern */}
+      {/* 3. Architectural Micro-Dot Background Pattern */}
       <div 
         className="absolute inset-0 opacity-15 dark:opacity-20 text-[var(--text-heading)] pointer-events-none"
         style={{
@@ -46,7 +46,7 @@ export const AmbientBackground = () => {
         }}
       />
 
-      {/* 4. Minimalist EKG Heartbeat Line (Visible Medical Accent at Bottom) */}
+      {/* 4. EKG Heartbeat Pulse Accent Line at Bottom */}
       <div className="absolute inset-x-0 bottom-0 opacity-30 dark:opacity-40 overflow-hidden pointer-events-none">
         <svg
           className="w-full h-28 text-emerald-400 dark:text-emerald-500"
