@@ -60,9 +60,7 @@ export const TwoFactorModal = ({
             required
             autoFocus
           />
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1 text-center font-mono">
-            📌 Default Testing PIN Admin: <code className="text-emerald-600 dark:text-emerald-300 font-bold">1234</code> | Testing PIN Staff: <code className="text-emerald-600 dark:text-emerald-300 font-bold">123456</code>
-          </p>
+
         </div>
 
         {error && (
