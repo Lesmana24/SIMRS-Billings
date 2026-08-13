@@ -1,47 +1,143 @@
 # SIMRS Billing Frontend Application 🏥💻
 
-Aplikasi Antarmuka Web untuk **Sistem Informasi Manajemen Rumah Sakit (SIMRS) - Modul Billing, Otorisasi Kasir, & Transaksi Keuangan Medis**. Built using **React 19**, **Vite 6**, **Tailwind CSS**, **Glassmorphism UI System**, **Lucide Icons**, dan **ImageKit Cloud Integration**.
+Aplikasi Antarmuka Web Modern untuk **Sistem Informasi Manajemen Rumah Sakit (SIMRS) - Modul Billing, Otorisasi Kasir, Verifikasi Klaim Penjamin, & Analytics Keuangan Medis**. 
+
+Built with **React 19**, **Vite 6**, **Tailwind CSS**, **Glassmorphism UI System**, **Lucide Icons**, dan **ImageKit Cloud Storage**.
 
 ---
 
 ## 📋 Daftar Isi
 
-- [Fitur Utama](#-fitur-utama)
-- [Teknologi & Dependensi](#-teknologi--dependensi)
-- [Struktur Proyek](#-struktur-proyek)
-- [Manajemen Hak Akses (RBAC)](#-manajemen-hak-akses-rbac)
-- [Panduan Instalasi & Memulai](#-panduan-instalasi--memulai)
-- [Detail Halaman & Modul UI](#-detail-halaman--modul-ui)
-- [Detail Komponen UI Reusable](#-detail-komponen-ui-reusable)
-- [Arsitektur Integrasi API Backend (`api.js`)](#-arsitektur-integrasi-api-backend-apijs)
-- [Pengunduhan Laporan Keuangan (File System API & Blob Fallback)](#-pengunduhan-laporan-keuangan-file-system-api--blob-fallback)
+- [📸 Galeri Antarmuka & Tangkapan Layar (UI Showcase)](#-galeri-antarmuka--tangkapan-layar-ui-showcase)
+- [🚀 Fitur Utama](#-fitur-utama)
+- [🔐 Manajemen Hak Akses (RBAC)](#-manajemen-hak-akses-rbac)
+- [🛠️ Teknologi & Dependensi](#-teknologi--dependensi)
+- [📂 Struktur Proyek](#-struktur-proyek)
+- [🖥️ Detail Halaman & Modul UI](#-detail-halaman--modul-ui)
+- [🧩 Detail Komponen UI Reusable](#-detail-komponen-ui-reusable)
+- [🔗 Arsitektur Integrasi API Backend (`api.js`)](#-arsitektur-integrasi-api-backend-apijs)
+- [⚡ Panduan Memulai & Deployment](#-panduan-memulai--deployment)
+
+---
+
+## 📸 Galeri Antarmuka & Tangkapan Layar (UI Showcase)
+
+Tampilan antarmuka nyata dari sistem **SIMRS Billing** yang disimpan di dalam direktori `ss/`:
+
+### 1. Halaman Login (`ss/01-login-page.png`)
+*Antarmuka autentikasi pengguna dengan estetika High-Aesthetic Glassmorphism, efek animasi ambient background canvas, dan switcher mode gelap/terang.*
+
+![Login Screen](./ss/01-login-page.png)
+
+---
+
+### 2. Dashboard Overview (`ss/02-dashboard-overview.png`)
+*Ringkasan eksekutif transaksi SIMRS yang menampilkan kartu statistik KPI utama, ringkasan penerbitan billing, piutang klaim, dan aktivitas terbaru.*
+
+![Dashboard Overview](./ss/02-dashboard-overview.png)
+
+---
+
+### 3. Manajemen Billing Medis (`ss/03-billings-management.png`)
+*Modul utama pengelolaan tagihan pasien, filter status otorisasi (PENDING/PAID), kalkulasi beban netto pasien vs penjamin, serta aksi otorisasi kasir.*
+
+![Billings Management](./ss/03-billings-management.png)
+
+---
+
+### 4. Modal Penerbitan Tagihan Medis (`ss/04-create-billing-modal.png`)
+*Form interaktif penerbitan billing baru dengan pencarian akun pasien terdaftar (Auto-fill Nama Lengkap ➔ Username), pemilihan tindakan medis dinamis, dan kalkulasi rasio penjamin.*
+
+![Create Billing Modal](./ss/04-create-billing-modal.png)
+
+---
+
+### 5. Modal Otorisasi Bayar & 2FA Kasir (`ss/05-pay-billing-modal.png`)
+*Otorisasi pembayaran kasir terlindungi 2FA 6-digit PIN, pilihan metode pembayaran fleksibel (CASH, BANK_TRANSFER, SPLIT), serta proteksi header HTTP `X-Idempotency-Key`.*
+
+![Pay Billing Modal](./ss/05-pay-billing-modal.png)
+
+---
+
+### 6. Manajemen Klaim Penjamin (`ss/06-claims-management.png`)
+*Pusat pengelolaan klaim subsidi penjamin medis terpisah antara **🛡️ BPJS Kesehatan (V-Claim)** dan **🏢 Asuransi Swasta** (AXA, Prudential, Allianz, Manulife, dll.).*
+
+![Claims Management](./ss/06-claims-management.png)
+
+---
+
+### 7. Laporan Keuangan & Analytics (`ss/07-analytics-dashboard.png`)
+*Visualisasi grafik tren pendapatan bulanan, breakdown klaim penjamin, indikator rasio keuangan, serta pengunduhan laporan kas berformat Excel (.xlsx) & CSV.*
+
+![Analytics Dashboard](./ss/07-analytics-dashboard.png)
+
+---
+
+### 8. Master Tarif Layanan Medis (`ss/08-tarifs-master.png`)
+*Pengelolaan katalog tarif tindakan medis rumah sakit dengan dukungan CRUD lengkap dan validasi harga.*
+
+![Tarifs Master](./ss/08-tarifs-master.png)
+
+---
+
+### 9. Audit Log & System Trail (`ss/09-audit-logs.png`)
+*Monitoring jejak audit aktivitas pengguna secara real-time yang mencatat Action, Resource, IP Address, Timestamp, dan Perubahan State.*
+
+![Audit Logs](./ss/09-audit-logs.png)
+
+---
+
+### 10. Portal Mandiri Pasien (`ss/10-patient-portal.png`)
+*Portal mandiri bagi pasien terdaftar untuk meninjau rincian tagihan pribadi, melihat struk resmi, dan mengunggah bukti transfer bank langsung ke ImageKit Cloud.*
+
+![Patient Portal](./ss/10-patient-portal.png)
 
 ---
 
 ## 🚀 Fitur Utama
 
-1. **Modern Glassmorphism UI & Dual Theme System**: Tampilan antarmuka berestetika tinggi (*High-Aesthetic Glassmorphism*) dengan dukungan **Mode Gelap (Dark Mode)** dan **Mode Terang (Light Mode)** yang responsif, dilengkapi animasi ambient canvas (`AmbientBackground.jsx`).
+1. **Modern Glassmorphism UI & Dual Theme System**:
+   - Tampilan antarmuka berestetika tinggi (*High-Aesthetic Glassmorphism*) dengan dukungan **Mode Gelap (Dark Mode)** dan **Mode Terang (Light Mode)**.
+   - Dilengkapi kanvas animasi ambient background (`AmbientBackground.jsx`).
+
 2. **Penerbitan Tagihan Medis Dynamic (`CreateBillingModal`)**:
    - Pencarian akun pasien terdaftar dengan **Prioritas Auto-fill Nama Lengkap (`full_name`) ➔ Username**.
    - Pemilihan tindakan/tarif medis dinamis dengan kalkulasi kuantitas item per tindakan.
    - Perhitungan otomatis Total Bruto, Klaim Penjamin/Asuransi, dan Beban Netto Pasien (`patient_amount`).
-   - Fitur pencetakan **Struk Rincian Pembayaran Medis Resmi** siap print (`ReceiptModal.jsx`).
+   - Pencetakan **Struk Rincian Pembayaran Medis Resmi** siap print (`ReceiptModal.jsx`).
+
 3. **Otorisasi Kasir & Keamanan 2FA PIN (`TwoFactorModal`)**:
    - Penginputan metode pembayaran fleksibel (`CASH`, `BANK_TRANSFER`, dan `SPLIT`).
    - Verifikasi PIN 6-digit 2-Factor Authentication (2FA) kasir via header HTTP `X-2FA-Code`.
-   - Header HTTP `X-Idempotency-Key` otomatis untuk mencegah double charge kasir.
+   - Header HTTP `X-Idempotency-Key` otomatis untuk mencegah double charge / transaksi ganda.
+
 4. **Manajemen Klaim Penjamin Terpisah (`ClaimsPage`)**:
    - Navigasi **Tab Terpisah** untuk 🛡️ **Klaim BPJS Kesehatan (V-Claim)** dan 🏢 **Klaim Asuransi Swasta** (AXA, Prudential, Allianz, Manulife, FWD, dll.).
    - Pelacakan status klaim secara real-time (`UNCLAIMED`, `SUBMITTED`, `VERIFIED`, `PAID`, `DISPUTED`).
-   - Kartu KPI ringkasan piutang klaim yang dinamis disesuaikan dengan Tab penjamin yang aktif.
+   - Kartu KPI ringkasan piutang klaim dinamis yang menyesuaikan dengan Tab penjamin aktif.
+
 5. **Portal Mandiri Pasien & ImageKit Cloud Upload (`MyBillingsPage`)**:
    - Pasien dapat melihat riwayat tagihan medis pribadi, rincian tindakan, dan beban netto.
    - Pengunggahan struk/bukti transfer bank langsung ke cloud storage ImageKit API yang otomatis memperbarui status tagihan menjadi `WAITING_VERIFICATION`.
+
 6. **Laporan & Analytics Keuangan Interaktif (`AnalyticsDashboard`)**:
    - Visualisasi grafik trend pendapatan bulanan (`RevenueTrendChart.jsx`), rasio klaim penjamin vs bayar pasien, dan kartu KPI indikator keuangan (`FinancialKpiCards.jsx`).
    - Pengunduhan laporan kas bulanan langsung dalam format Excel (`.xlsx`) dan CSV (dengan UTF-8 BOM).
+
 7. **Jurnal Mutasi Kas & Audit Trail System**:
    - Peninjauan mutasi kas masuk secara permanen (*Payment Ledgers*) serta pemantauan log jejak aktivitas pengguna secara transparan (*Audit Log Page*).
+
+---
+
+## 🔐 Manajemen Hak Akses (RBAC)
+
+Sistem menyesuaikan visibilitas navigasi Sidebar dan izin interaksi tombol sesuai dengan *Role* pengguna terautentikasi:
+
+| Peran (Role) | Akses Halaman & Fitur UI |
+| :--- | :--- |
+| **Admin** | Akses penuh ke seluruh modul: User Management (`/users`), Delete Ledger, Create/Pay Billing, Master Tarif, Claims, Analytics, Audit Log. |
+| **Staff / Kasir** | Create Billing, Pay Billing (2FA), Reject Proof, Master Tarif, Claims BPJS/Swasta, Analytics Export, Audit Log. *(Tidak dapat hapus Ledger & User Management)*. |
+| **Pasien** | Portal Pasien (`/my-billings`): Melihat tagihan pribadi, melihat struk rincian, dan upload bukti bayar bank ke ImageKit Cloud. |
 
 ---
 
@@ -62,6 +158,17 @@ Aplikasi Antarmuka Web untuk **Sistem Informasi Manajemen Rumah Sakit (SIMRS) - 
 
 ```text
 frontend/
+├── ss/                      # Screenshots dokumentasi antarmuka web (10 gambar)
+│   ├── 01-login-page.png
+│   ├── 02-dashboard-overview.png
+│   ├── 03-billings-management.png
+│   ├── 04-create-billing-modal.png
+│   ├── 05-pay-billing-modal.png
+│   ├── 06-claims-management.png
+│   ├── 07-analytics-dashboard.png
+│   ├── 08-tarifs-master.png
+│   ├── 09-audit-logs.png
+│   └── 10-patient-portal.png
 ├── public/                  # Asset statis publik (logo, favicon)
 ├── src/
 │   ├── components/
@@ -113,45 +220,6 @@ frontend/
 
 ---
 
-## 🔐 Manajemen Hak Akses (RBAC)
-
-Aplikasi menyesuaikan visibilitas navigasi Sidebar dan izin interaksi tombol sesuai dengan *Role* pengguna yang terautentikasi:
-
-| Peran (Role) | Akses Halaman & Fitur UI |
-| :--- | :--- |
-| **Admin** | Access penuh ke seluruh modul: User Management (`/users`), Delete Ledger, Create/Pay Billing, Master Tarif, Claims, Analytics, Audit Log. |
-| **Staff / Kasir** | Create Billing, Pay Billing (2FA), Reject Proof, Master Tarif, Claims BPJS/Swasta, Analytics Export, Audit Log. *(Tidak dapat hapus Ledger & User Management)*. |
-| **Pasien** | Portal Pasien (`/my-billings`): Melihat tagihan pribadi, melihat struk rincian, dan upload bukti bayar bank ke ImageKit Cloud. |
-
----
-
-## ⚡ Panduan Instalasi & Memulai
-
-### 1. Prasyarat System
-- **Node.js** v18.0.0 atau v20.0.0+
-- **NPM** atau **Yarn**
-
-### 2. Install Dependensi
-Buka terminal di dalam direktori `frontend/`:
-
-```bash
-npm install
-```
-
-### 3. Jalankan Server Mode Development
-```bash
-npm run dev
-```
-Aplikasi web akan dapat diakses di `http://localhost:5173`.
-
-### 4. Build untuk Production
-```bash
-npm run build
-```
-File bundle hasil kompilasi statis akan siap di direktori `dist/`.
-
----
-
 ## 🖥️ Detail Halaman & Modul UI
 
 1. **Dashboard Overview (`/`)**: Menampilkan statistik ringkasan total penerbitan tagihan, piutang klaim penjamin, transaksi kasir terbaru, dan navigasi cepat.
@@ -185,17 +253,34 @@ Seluruh komunikasi HTTP ke REST API Backend dikendalikan terpusat melalui `src/s
 
 - **Base URL**: `/api/v1` (Diproxy oleh Vite dev server ke `http://localhost:8080`).
 - **Otomatisasi Header Authorization**: Token JWT diambil dari `localStorage.getItem('simrs_token')` dan disisipkan pada setiap request privat.
-- **Injeksi Header Header Keamanan**:
+- **Injeksi Header Keamanan**:
   - `X-Idempotency-Key`: Dihasilkan secara otomatis (`PAY-BILLING-{id}-{timestamp}`) untuk mencegah transaksi ganda.
   - `X-2FA-Code`: Disisipkan saat melakukan otorisasi pembayaran kasir.
 - **Unggah Bukti Bayar Multipart**: `billingApi.submitProof()` menggunakan `FormData` untuk mengirimkan berkas gambar ke backend yang akan mengunggahnya ke cloud ImageKit.
 
 ---
 
-## 📥 Pengunduhan Laporan Keuangan (File System API & Blob Fallback)
+## ⚡ Panduan Memulai & Deployment
 
-Fungsi `downloadReport()` di `api.js` dilengkapi penanganan modern untuk pengunduhan berkas Excel/CSV:
+### 1. Prasyarat Sistem
+- **Node.js** v18.0.0 atau v20.0.0+
+- **NPM** atau **Yarn**
 
-1. **File System Access API (`window.showSaveFilePicker`)**: Mengizinkan pengguna memilih nama dan lokasi penyimpanan folder secara native di komputer.
-2. **Anchor Blob Fallback**: Jika browser tidak mendukung File System Access API, sistem secara otomatis mengkonversi response ke `Blob` dan memicu unduhan otomatis dengan elemen `<a>` tersembunyi.
-3. **UTF-8 BOM Support**: Menambahkan Byte Order Mark (`\uFEFF`) pada berkas CSV agar karakter khusus terdeteksi dengan sempurna saat dibuka di Microsoft Excel.
+### 2. Install Dependensi
+Buka terminal di dalam direktori `frontend/`:
+
+```bash
+npm install
+```
+
+### 3. Jalankan Server Mode Development
+```bash
+npm run dev
+```
+Aplikasi web akan dapat diakses di `http://localhost:5173`.
+
+### 4. Build untuk Production
+```bash
+npm run build
+```
+File bundle hasil kompilasi statis akan siap di direktori `dist/`.
