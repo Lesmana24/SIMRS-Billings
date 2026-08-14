@@ -360,9 +360,9 @@ simrs-billing/
    DB_PORT=5432
    JWT_SECRET=supersecretkey_simrs_2026
 
-   IMAGEKIT_PUBLIC_KEY="public_ngqO64a5ePG5VSG9dVZPnsbVG9k="
-   IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/luyrswpql"
-   IMAGEKIT_PRIVATE_KEY="private_gfPQyiB0l8vfVEQypYp5QYPpyJ4="
+   IMAGEKIT_PUBLIC_KEY="your_imagekit_public_key"
+   IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/your_imagekit_id"
+   IMAGEKIT_PRIVATE_KEY="your_imagekit_private_key"
    ```
 
 3. **Install dependensi Go & jalankan server sekaligus Seeding Data**:
